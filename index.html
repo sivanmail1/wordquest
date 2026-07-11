@@ -1,0 +1,1841 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#5b8def">
+<title>WordQuest — מסע המילים</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;900&family=Andika:wght@400;700&display=swap" rel="stylesheet">
+<link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIldvcmRRdWVzdCIsCiAgInNob3J0X25hbWUiOiAiV29yZFF1ZXN0IiwKICAic3RhcnRfdXJsIjogIi4vd29yZHF1ZXN0Lmh0bWwiLAogICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLAogICJiYWNrZ3JvdW5kX2NvbG9yIjogIiMxMDE3MmEiLAogICJ0aGVtZV9jb2xvciI6ICIjNWI4ZGVmIiwKICAiaWNvbnMiOiBbXQp9">
+<style>
+  :root{
+    --card:#ffffff; --ink:#ffffff; --card-ink:#1e293b; --muted:#e8ecff;
+    --blue:#2563eb; --green:#16a34a; --red:#ef4444; --gold:#fde047; --purple:#8b5cf6;
+    --shadow:0 10px 30px rgba(30,20,80,.28);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%}
+  body{
+    font-family:'Rubik','Segoe UI','Noto Sans Hebrew',system-ui,sans-serif;
+    background:linear-gradient(160deg,#22d3ee 0%,#3b82f6 42%,#8b5cf6 100%);
+    background-attachment:fixed;
+    color:var(--ink); overflow:hidden; user-select:none;
+  }
+  h1{text-shadow:0 3px 0 rgba(0,0,0,.15)}
+  /* buttons & inputs don't inherit font-family by default — force it */
+  button,input,select,textarea{font-family:inherit}
+  .card{color:var(--card-ink)}
+  .card .hint,.card .muted{color:#64748b}
+  .power{display:flex;align-items:center;gap:6px;background:#0e2a3b;color:#67e8f9;
+    padding:6px 12px;border-radius:999px;font-weight:800;font-size:1.05rem}
+  #app{height:100%;display:flex;flex-direction:column}
+  .screen{flex:1;display:none;flex-direction:column;overflow:auto;padding:18px;animation:fade .25s ease}
+  .screen.active{display:flex}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .center{align-items:center;justify-content:center;text-align:center}
+  h1{font-size:2.2rem;margin:.2em 0}
+  .sub{color:var(--muted);margin:0 0 1.2em}
+  /* English uses Andika — a clear font made for early readers (distinct b/d/p/q, I/l) */
+  .en{direction:ltr;unicode-bidi:isolate;font-family:'Andika','Verdana','Segoe UI',Arial,sans-serif}
+
+  /* buttons */
+  .btn{border:none;border-radius:18px;padding:16px 22px;font-size:1.1rem;font-weight:700;
+    cursor:pointer;color:#fff;background:var(--blue);box-shadow:var(--shadow);transition:transform .08s}
+  .btn:active{transform:scale(.96)}
+  .btn.big{font-size:1.35rem;padding:18px 40px;border-radius:22px}
+  .btn.ghost{background:#334155}
+  .btn.gold{background:linear-gradient(135deg,#f59e0b,#fbbf24);color:#3b2600}
+
+  /* profile cards */
+  .profiles{display:flex;gap:22px;flex-wrap:wrap;justify-content:center;margin-top:10px}
+  .pcard{width:180px;background:var(--card);color:var(--card-ink);border-radius:24px;padding:22px;box-shadow:var(--shadow);
+    cursor:pointer;transition:transform .12s;border:3px solid transparent}
+  .pcard:active{transform:scale(.96)}
+  .pcard .ava{font-size:64px;line-height:1}
+  .pcard .nm{font-size:1.4rem;font-weight:800;margin-top:8px}
+  .pcard .cn{color:#d97706;font-weight:800;margin-top:6px}
+
+  /* top bar */
+  .topbar{display:flex;align-items:center;gap:12px;padding:10px 14px;background:rgba(30,41,59,.7);
+    border-radius:16px;margin-bottom:12px;flex-wrap:wrap;row-gap:8px}
+  .coins{display:flex;align-items:center;gap:6px;background:#3b2f0b;color:var(--gold);
+    padding:6px 14px;border-radius:999px;font-weight:800;font-size:1.15rem}
+  .who{font-weight:800;font-size:1.05rem;display:flex;align-items:center;gap:8px}
+  .who .ava{font-size:1.6rem}
+  .qcount{background:#334155;color:#cbd5e1;padding:6px 12px;border-radius:999px;font-weight:800;font-size:.95rem;white-space:nowrap}
+  .qcount span{direction:ltr;unicode-bidi:isolate}
+  .spacer{flex:1}
+  .iconbtn{background:#334155;border:none;color:#fff;width:42px;height:42px;border-radius:12px;
+    font-size:1.2rem;cursor:pointer}
+
+  /* world map */
+  .map{position:relative;flex:1;overflow:auto;padding:20px 0 40px}
+  .path{position:relative;margin:0 auto;width:min(680px,98vw)}
+  .node{position:relative;width:clamp(64px,20vw,88px);height:clamp(64px,20vw,88px);border-radius:50%;
+    display:flex;align-items:center;justify-content:center;font-size:clamp(1.3rem,5vw,1.9rem);font-weight:900;
+    box-shadow:var(--shadow);cursor:pointer;border:4px solid #0b1220;transition:transform .1s;opacity:.92;z-index:1}
+  .node:active{transform:scale(.94)}
+  .node.done{background:linear-gradient(135deg,#16a34a,#22c55e);opacity:1}
+  .node.current{background:linear-gradient(135deg,#3b82f6,#60a5fa);animation:pulse 1.4s infinite;opacity:1}
+  .node.locked{background:#334155;color:#64748b;cursor:not-allowed;box-shadow:none}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(96,165,250,.6)}50%{box-shadow:0 0 0 14px rgba(96,165,250,0)}}
+  .node .stars{position:absolute;top:-14px;font-size:.9rem;letter-spacing:-2px}
+  .node .lbl{position:absolute;bottom:-20px;left:0;right:0;text-align:center;font-size:.72rem;color:var(--muted);white-space:nowrap;font-weight:700}
+
+  /* exercise */
+  .exwrap{flex:1;display:flex;flex-direction:column}
+  .progress{height:12px;background:#334155;border-radius:999px;overflow:hidden;margin-bottom:14px}
+  .progress > div{height:100%;background:linear-gradient(90deg,#22c55e,#4ade80);width:0;transition:width .3s}
+  .prompt{text-align:center;font-size:1.7rem;font-weight:800;margin:8px 0 4px}
+  .stage-hebrew{color:#fff;font-size:1.55rem;font-weight:800;text-align:center;margin-bottom:16px;line-height:1.35;text-shadow:0 2px 3px rgba(0,0,0,.2)}
+  #exStage,#bossStage{text-align:center}
+  .bigq{text-align:center;font-size:5.5rem;line-height:1.1;margin:6px 0}
+  .bigq.en{background:#fff;color:#1e40af;border-radius:26px;padding:6px 40px;display:inline-block;
+    box-shadow:0 8px 0 rgba(0,0,0,.14);font-weight:900}
+  .bigq.word{font-size:3.4rem;font-weight:900;letter-spacing:2px}
+  .speaker{background:var(--purple);border:none;color:#fff;border-radius:50%;width:76px;height:76px;
+    font-size:2rem;cursor:pointer;box-shadow:var(--shadow);margin:8px auto;display:block}
+  .speaker:active{transform:scale(.9)}
+  .replay{background:#fff;color:#6d28d9;border:none;border-radius:999px;padding:9px 18px;font-size:.95rem;
+    font-weight:800;cursor:pointer;margin:14px auto 0;display:block;box-shadow:0 4px 0 rgba(0,0,0,.12)}
+  .replay:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(0,0,0,.12)}
+  .clue{background:#fff7ed;color:#c2410c;border:none;border-radius:999px;padding:9px 18px;font-size:.95rem;
+    font-weight:800;cursor:pointer;margin:12px auto 0;display:block;box-shadow:0 4px 0 rgba(0,0,0,.12)}
+  .clue:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(0,0,0,.12)}
+  .clueword{margin-top:12px;text-align:center;font-size:2.4rem;font-weight:900;color:#fff;
+    background:rgba(0,0,0,.18);border-radius:16px;padding:6px 20px;display:inline-block}
+  .options{display:grid;gap:14px;margin-top:auto;padding-top:16px}
+  .options.g2{grid-template-columns:1fr 1fr}
+  .options.g4{grid-template-columns:1fr 1fr}
+  .opt{border:none;border-radius:22px;padding:20px;color:#243b53;
+    font-size:2.2rem;font-weight:900;cursor:pointer;transition:transform .08s;min-height:82px;
+    display:flex;align-items:center;justify-content:center;box-shadow:0 6px 0 rgba(0,0,0,.18)}
+  .opt:nth-child(4n+1){background:#ffd93b}
+  .opt:nth-child(4n+2){background:#6ee7b7}
+  .opt:nth-child(4n+3){background:#93c5fd}
+  .opt:nth-child(4n+4){background:#f9a8d4}
+  .opt.word{font-size:1.7rem;letter-spacing:1px}
+  .opt:active{transform:translateY(3px);box-shadow:0 3px 0 rgba(0,0,0,.18)}
+  .opt.correct{background:#16a34a !important;color:#fff;box-shadow:0 6px 0 #15803d;animation:pop .3s}
+  .opt.wrong{background:#ef4444 !important;color:#fff;box-shadow:0 6px 0 #b91c1c;animation:shake .3s}
+  @keyframes pop{50%{transform:scale(1.08)}}
+  @keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+
+  /* typed-answer questions */
+  .typebox{display:flex;flex-direction:column;align-items:center;gap:14px;margin-top:auto;padding-top:16px}
+  .typeinput{font-size:2.3rem;font-weight:900;text-align:center;padding:14px 18px;border-radius:18px;
+    border:3px solid #cbd5e1;width:min(280px,84%);color:#1e293b;background:#fff;direction:ltr;box-shadow:var(--shadow)}
+  .typeinput:focus{outline:none;border-color:var(--blue)}
+  .typeinput.correct{border-color:var(--green) !important;background:#f0fdf4}
+  .typeinput.wrong{border-color:var(--red) !important;background:#fef2f2}
+  .typeinput.shakeerr{animation:shake .3s;border-color:var(--red) !important}
+  .revealAnswer{margin-top:12px;text-align:center;font-weight:800;color:#fff;background:rgba(0,0,0,.28);
+    border-radius:12px;padding:8px 18px}
+
+  /* feedback toast */
+  .toast{position:fixed;top:20%;left:50%;transform:translateX(-50%) scale(.5);opacity:0;
+    background:rgba(15,23,42,.95);border:3px solid var(--green);padding:22px 40px;border-radius:24px;
+    font-size:1.6rem;font-weight:900;z-index:50;pointer-events:none;transition:.25s}
+  .toast.show{opacity:1;transform:translateX(-50%) scale(1)}
+  .toast.bad{border-color:var(--red)}
+
+  /* coin fly */
+  .coinfly{position:fixed;font-size:1.6rem;z-index:60;pointer-events:none;animation:coinup 1s ease forwards}
+  @keyframes coinup{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-120px) scale(1.6)}}
+
+  /* level complete */
+  .celebrate{text-align:center}
+  .celebrate .big{font-size:5rem;margin:10px}
+  .starrow{font-size:3rem;letter-spacing:6px;margin:10px}
+
+  /* dashboard */
+  .dash{max-width:820px;margin:0 auto;width:100%}
+  .card{background:var(--card);border-radius:18px;padding:18px;margin-bottom:16px;box-shadow:var(--shadow)}
+  .card h3{margin:.1em 0 .6em;font-size:1.15rem}
+  .row{display:flex;gap:14px;flex-wrap:wrap}
+  .kid-tabs{display:flex;gap:10px;margin-bottom:14px}
+  .kid-tab{flex:1;padding:12px;border-radius:14px;background:#334155;border:none;color:#fff;
+    font-weight:800;font-size:1.05rem;cursor:pointer}
+  .kid-tab.active{background:var(--blue)}
+  .bars{display:flex;align-items:flex-end;gap:6px;height:130px;padding-top:10px}
+  .bars .bar{flex:1;background:linear-gradient(180deg,#60a5fa,#3b82f6);border-radius:6px 6px 0 0;
+    min-height:2px;position:relative;transition:height .4s}
+  .bars .bar span{position:absolute;bottom:-20px;left:0;right:0;text-align:center;font-size:.65rem;color:var(--muted)}
+  .bars .bar b{position:absolute;top:-18px;left:0;right:0;text-align:center;font-size:.7rem;color:var(--ink)}
+  .skill{margin:10px 0}
+  .skill .lab{display:flex;justify-content:space-between;font-weight:700;margin-bottom:4px;font-size:.95rem}
+  .track{height:16px;background:#334155;border-radius:999px;overflow:hidden}
+  .track > div{height:100%;border-radius:999px;transition:width .5s}
+  .tele-item{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #334155;font-size:.9rem}
+  .tele-item .en{font-weight:800}
+  .pill{padding:2px 10px;border-radius:999px;font-size:.78rem;font-weight:800}
+  .pill.hard{background:#3f1212;color:#fca5a5}
+  .pill.easy{background:#052e16;color:#86efac}
+  .muted{color:var(--muted)}
+  .kbd{display:inline-block;background:#334155;padding:2px 8px;border-radius:6px;font-family:monospace}
+  input.pin{font-size:2rem;letter-spacing:12px;text-align:center;width:180px;padding:10px;border-radius:12px;
+    border:3px solid #334155;background:#0b1220;color:#fff;direction:ltr}
+  .backbtn{align-self:flex-start;margin-bottom:8px}
+  .hint{font-size:.85rem;color:var(--muted);margin-top:4px}
+  .streak{display:flex;align-items:center;gap:6px;background:#3b1f0b;color:#fdba74;padding:6px 12px;border-radius:999px;font-weight:800;transition:opacity .3s}
+  .streak.pending{opacity:.5}
+  .goalchip{display:flex;align-items:center;gap:6px;background:#1e2f4d;color:#93c5fd;padding:6px 12px;
+    border-radius:999px;font-weight:800;font-size:.95rem;white-space:nowrap;transition:background .3s,color .3s}
+  .goalchip.done{background:#052e16;color:#86efac}
+  .goalPopup{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(.6);opacity:0;
+    background:linear-gradient(160deg,#f59e0b,#ef4444);color:#fff;padding:30px 44px;border-radius:28px;
+    text-align:center;z-index:80;box-shadow:0 20px 50px rgba(0,0,0,.45);transition:.35s;pointer-events:none}
+  .goalPopup.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  .goalPopup .gp-fire{font-size:4rem;line-height:1}
+  .goalPopup .gp-title{font-size:1.5rem;font-weight:900;margin-top:6px}
+  .goalPopup .gp-sub{font-size:1.05rem;font-weight:700;margin-top:4px;opacity:.92}
+  .goalPopup .gp-coins{margin-top:10px;font-size:1.35rem;font-weight:900;color:#fef3c7}
+  /* shop */
+  .shopgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:14px;max-width:820px;margin:0 auto;width:100%;padding-bottom:20px}
+  .shopitem{background:#fff;color:var(--card-ink);border-radius:20px;padding:16px 12px;text-align:center;box-shadow:var(--shadow);display:flex;flex-direction:column;align-items:center;justify-content:space-between}
+  .shopitem .ic{font-size:3.4rem;line-height:1;margin-bottom:6px}
+  .shopitem .nm2{font-weight:800;font-size:.95rem}
+  .shopitem .pr{color:#d97706;font-weight:900;margin:6px 0}
+  .shopitem .pw{color:#0891b2;font-weight:800;font-size:.82rem;margin-top:2px}
+  .shopitem .themeprev{height:52px;width:100%;border-radius:12px;margin-bottom:8px;box-shadow:inset 0 0 0 2px rgba(0,0,0,.05)}
+  .shopitem button{margin-top:8px;border:none;border-radius:12px;padding:9px 12px;font-weight:800;cursor:pointer;background:var(--blue);color:#fff;width:100%;font-size:.95rem}
+  .shopitem button:active{transform:scale(.97)}
+  .shopitem button.owned{background:#e2e8f0;color:#334155}
+  .shopitem button.equipped{background:var(--green);color:#fff}
+  .shopitem button.locked{opacity:.6}
+  /* boss battles */
+  .bossmon{font-size:6rem;line-height:1;filter:drop-shadow(0 8px 12px rgba(0,0,0,.45))}
+  .bossmon.sm{font-size:3.2rem}
+  .bossmon.hit{animation:bosshit .3s}
+  @keyframes bosshit{50%{transform:scale(1.15) rotate(-5deg);filter:brightness(1.7) drop-shadow(0 0 10px #fff)}}
+  .bosshud{display:flex;align-items:center;gap:12px;background:rgba(15,23,42,.55);padding:12px;border-radius:16px;margin-bottom:12px}
+  .hpbar{height:22px;background:#3f1212;border-radius:999px;overflow:hidden;box-shadow:inset 0 0 0 2px rgba(255,255,255,.12)}
+  .hpbar>div{height:100%;background:linear-gradient(90deg,#ef4444,#f87171);width:100%;transition:width .35s}
+  .hearts{margin-top:6px;font-size:1.25rem;letter-spacing:3px}
+  .potionrow{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+  .potioncard{background:#fff;color:var(--card-ink);border-radius:16px;padding:12px;width:140px;box-shadow:var(--shadow);cursor:pointer;border:3px solid transparent}
+  .potioncard.sel{border-color:var(--green);transform:translateY(-3px)}
+  .potioncard .pe{font-size:2.6rem;line-height:1}
+  .potioncard .pn{font-weight:800;font-size:.92rem;margin-top:4px}
+  .potioncard .pd{font-size:.72rem;color:#64748b;margin-top:3px}
+  .potioncard .pc{font-size:.8rem;color:#0891b2;font-weight:800;margin-top:5px}
+  .dmgfloat{position:fixed;font-size:2.2rem;font-weight:900;color:#fde047;z-index:60;pointer-events:none;
+    animation:coinup 1s ease forwards;text-shadow:0 2px 5px rgba(0,0,0,.6)}
+  /* boss battle — VS layout, live stats, arena feel */
+  .bossPlayerSide{display:flex;flex-direction:column;align-items:center;gap:3px;flex:none}
+  .bossPlayerSide .bossmon.sm{font-size:2.3rem}
+  .comboChip{background:#3b1f0b;color:#fdba74;font-size:.7rem;font-weight:900;padding:2px 9px;border-radius:999px;
+    white-space:nowrap;transition:transform .2s,background .2s}
+  .comboChip.hot{background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;transform:scale(1.18)}
+  .bossmid{display:flex;align-items:center;gap:12px;flex:1;min-width:0}
+  .bossStatsRow{display:flex;justify-content:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+  .bossTally{background:#334155;color:#e2e8f0;padding:6px 14px;border-radius:999px;font-weight:800;
+    font-size:.95rem;display:flex;gap:12px;white-space:nowrap}
+  .bossTally .ok{color:#86efac}
+  .bossTally .bad{color:#fca5a5}
+  @keyframes screenshake{0%,100%{transform:translateX(0)}20%{transform:translateX(-9px)}40%{transform:translateX(7px)}
+    60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+  #s-boss.shake{animation:screenshake .4s}
+  #s-boss{background:radial-gradient(ellipse at 50% 0%,rgba(239,68,68,.28),transparent 62%),
+    linear-gradient(180deg,#211a35 0%,#120e22 100%)}
+  @keyframes bossPop{0%{transform:scale(0) rotate(-20deg)}60%{transform:scale(1.2) rotate(8deg)}100%{transform:scale(1) rotate(0)}}
+  #s-bossresult .big{animation:bossPop .6s ease}
+  .prepEst{color:#fde68a;font-weight:800;font-size:.95rem;margin:2px 0 10px}
+  .poolChips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:6px 0 14px}
+  .poolChip{background:rgba(255,255,255,.16);color:#fff;font-weight:800;font-size:.8rem;padding:5px 14px;border-radius:999px}
+  .connector.toboss{background:linear-gradient(to left,#334155,#dc2626);height:9px;width:32px;box-shadow:0 0 10px rgba(220,38,38,.55)}
+  .hpLabelRow{display:flex;justify-content:space-between;align-items:center;margin-top:4px;gap:8px}
+  .hpLabel{font-weight:900;font-size:.85rem;color:#fecaca;direction:ltr;white-space:nowrap}
+  .nextDmgChip{background:#0e2a3b;color:#67e8f9;font-weight:800;font-size:.78rem;padding:2px 10px;border-radius:999px;white-space:nowrap}
+  .bossPotionRow{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+  .potionActiveChip{background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-weight:800;font-size:.78rem;
+    padding:4px 12px;border-radius:999px;box-shadow:0 3px 0 rgba(0,0,0,.25)}
+  .potionActiveChip.crit{background:linear-gradient(135deg,#f59e0b,#ef4444);animation:critpulse 1s infinite}
+  .potionActiveChip.shield{background:linear-gradient(135deg,#0891b2,#06b6d4)}
+  @keyframes critpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+  /* zones as clearly separated panels — a winding path of levels ending at the boss, no scrolling needed */
+  .zone{background:rgba(0,0,0,.18);border:2px solid rgba(255,255,255,.16);border-radius:24px;
+    padding:14px 8px 26px;margin:0 auto 26px;width:min(640px,97vw);transition:border-color .3s,background .3s}
+  .zone.zonecomplete{border-color:rgba(34,197,94,.55);background:rgba(22,163,74,.16)}
+  .zonehead{display:flex;flex-direction:column;align-items:center;gap:3px;margin:6px 0 10px;color:#fff}
+  .zonehead .zn{font-weight:900;font-size:1.3rem;background:rgba(255,255,255,.2);padding:4px 20px;border-radius:999px}
+  .zonehead .zt{font-weight:700;font-size:.98rem;opacity:.92}
+  .zonehead.lockedzone{opacity:.45}
+  .zonedone{background:rgba(34,197,94,.28);color:#86efac;font-weight:900;font-size:.78rem;padding:3px 14px;
+    border-radius:999px;margin-top:2px}
+  .zonelevels{position:relative;display:grid;grid-template-columns:repeat(3,1fr);
+    justify-items:center;align-items:center;direction:ltr;row-gap:32px;column-gap:4px;
+    padding:32px 6px 16px;overflow:visible}
+  .pathsvg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:0}
+  /* boss node — big, menacing, glowing, gets its own centered row at the end of the path */
+  .node.boss{background:linear-gradient(135deg,#7f1d1d,#dc2626 55%,#f43f5e)!important;font-size:clamp(2.2rem,7vw,3.2rem);
+    width:clamp(96px,28vw,140px);height:clamp(96px,28vw,140px);border:5px solid #fca5a5;
+    box-shadow:0 0 0 4px rgba(220,38,38,.3),0 12px 26px rgba(0,0,0,.45);grid-column:1/-1;margin-top:8px;opacity:1}
+  .node.boss:not(.locked){animation:bosspulse 1.5s infinite}
+  @keyframes bosspulse{0%,100%{box-shadow:0 0 0 4px rgba(220,38,38,.35),0 12px 26px rgba(0,0,0,.45)}
+    50%{box-shadow:0 0 0 14px rgba(220,38,38,0),0 12px 34px rgba(0,0,0,.6)}}
+  .node.boss.locked{background:linear-gradient(135deg,#3a2a2a,#4a3535)!important;border-color:#5b4444;animation:none}
+  .node.boss .bossband{position:absolute;top:-15px;background:#fbbf24;color:#7c2d12;font-size:.72rem;
+    font-weight:900;padding:2px 12px;border-radius:999px;letter-spacing:2px;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+  .node.boss .lbl{font-size:.82rem;color:#fecaca;font-weight:800;bottom:-26px;white-space:nowrap}
+  .levelinfo{text-align:center;font-weight:800;color:#fff;background:rgba(0,0,0,.22);border-radius:999px;
+    padding:6px 18px;width:max-content;max-width:92%;margin:0 auto 12px;font-size:1rem}
+  /* leaderboard */
+  .lb-row{display:flex;align-items:center;gap:12px;background:#fff;color:var(--card-ink);border-radius:18px;
+    padding:14px;margin-bottom:12px;box-shadow:var(--shadow)}
+  .lb-row.first{outline:3px solid #fbbf24}
+  .lb-rank{font-size:1.7rem;font-weight:900;width:38px;text-align:center;flex:none}
+  .lb-ava{font-size:2.4rem;flex:none}
+  .lb-main{flex:1;min-width:0}
+  .lb-name{font-weight:900;font-size:1.15rem}
+  .lb-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .lb-chip{background:#eef2ff;color:#3730a3;border-radius:999px;padding:2px 10px;font-size:.8rem;font-weight:800}
+  .lb-bar{height:8px;background:#e2e8f0;border-radius:999px;margin-top:9px;overflow:hidden}
+  .lb-bar>div{height:100%;background:linear-gradient(90deg,#22c55e,#4ade80)}
+  .potioncard .pbuy{margin-top:8px;border:none;border-radius:10px;padding:7px 10px;font-weight:800;
+    cursor:pointer;background:var(--blue);color:#fff;width:100%;font-size:.82rem}
+  .potioncard .pbuy:active{transform:scale(.97)}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- PROFILE SELECT -->
+  <section id="s-profile" class="screen center active">
+    <h1>WordQuest</h1>
+    <p class="sub">מסע המילים — בחרו שחקן</p>
+    <div id="profileList" class="profiles"></div>
+    <button class="btn" id="leaderBtnP" style="margin-top:26px">🏆 טבלת אלופים</button>
+    <button class="iconbtn" id="parentGear" style="margin-top:18px" title="אזור הורים">⚙️</button>
+    <div class="hint">אזור הורים</div>
+    <div class="hint" id="buildTag" style="margin-top:14px;opacity:.7"></div>
+  </section>
+
+  <!-- WORLD MAP -->
+  <section id="s-map" class="screen">
+    <div class="topbar">
+      <div class="who"><span class="ava" id="whoAva">🦊</span><span id="whoName">—</span></div>
+      <div id="streakBox" class="streak" style="display:none" title="רצף ימים — יעד יומי הושג">🔥 <span id="streakN">0</span></div>
+      <div id="goalBox" class="goalchip" title="יעד יומי: תשובות נכונות">🎯 <span id="goalN">0</span>/<span id="goalMax">20</span></div>
+      <div class="spacer"></div>
+      <div class="power" title="כוח פגיעה בקרב">⚔️ <span id="powerN">0</span></div>
+      <div class="coins">🪙 <span id="coinN">0</span></div>
+      <button class="iconbtn" id="leaderBtn" title="טבלת אלופים">🏆</button>
+      <button class="iconbtn" id="shopBtn" title="חנות">🛒</button>
+      <button class="iconbtn" id="switchBtn" title="החלף שחקן">🔁</button>
+    </div>
+    <div class="map"><div class="path" id="pathEl"></div></div>
+  </section>
+
+  <!-- SHOP -->
+  <section id="s-shop" class="screen">
+    <div class="topbar">
+      <button class="iconbtn" id="shopBack">‹</button>
+      <div class="who">🛒 חנות</div>
+      <div class="spacer"></div>
+      <div class="coins">🪙 <span id="coinN3">0</span></div>
+    </div>
+    <div class="kid-tabs" style="max-width:820px;margin:0 auto 14px;width:100%">
+      <button class="kid-tab active" id="tabAvatars">דמויות</button>
+      <button class="kid-tab" id="tabGear">ציוד</button>
+      <button class="kid-tab" id="tabPotions">חיזוקים</button>
+      <button class="kid-tab" id="tabThemes">רקעים</button>
+    </div>
+    <div id="shopGrid" class="shopgrid"></div>
+  </section>
+
+  <!-- BOSS PREP -->
+  <section id="s-bossprep" class="screen center">
+    <button class="btn ghost backbtn" id="bossPrepBack">‹ חזרה</button>
+    <div style="margin:auto;text-align:center;max-width:540px;width:100%">
+      <div class="bossmon" id="prepBossEmoji">👾</div>
+      <h1 id="prepBossTitle">בוס · אזור 1</h1>
+      <p class="sub">נצחו את הבוס כדי לפתוח את האזור הבא!</p>
+      <div class="row" style="justify-content:center;gap:10px;margin-bottom:16px">
+        <div class="coins">🪙 <span id="prepCoins">0</span></div>
+        <div class="power">⚔️ <span id="prepPower">0</span></div>
+        <div class="streak">❤️ <span id="prepHearts">3</span></div>
+      </div>
+      <p class="hint" id="prepDmg" style="color:#fff;font-size:.95rem;margin:0 0 6px"></p>
+      <p class="prepEst" id="prepQEst"></p>
+      <h3 style="margin:.5em 0 .2em">הבוס יבחן אתכם על:</h3>
+      <div class="poolChips" id="prepPool"></div>
+      <h3 style="margin:.3em 0">חיזוקים לקרב (לחצו לבחירה, או קנו חדשים)</h3>
+      <div id="prepPotions" class="potionrow"></div>
+      <div style="margin-top:20px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <button class="btn big gold" id="startBattle">⚔️ התחל קרב!</button>
+        <button class="btn ghost" id="prepShop">🛒 לחנות</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- BOSS BATTLE -->
+  <section id="s-boss" class="screen">
+    <div class="bosshud">
+      <div class="bossPlayerSide">
+        <div class="bossmon sm" id="bossPlayerAva">🧒</div>
+        <div class="comboChip" id="bossCombo">🔥 0</div>
+      </div>
+      <div class="bossmid">
+        <div class="bossmon sm" id="bossEmoji">👾</div>
+        <div style="flex:1">
+          <div class="hpbar"><div id="bossHP"></div></div>
+          <div class="hpLabelRow"><span class="hpLabel" id="bossHPLabel">0 / 0</span><span class="nextDmgChip" id="bossNextDmg">⚔️ -0</span></div>
+          <div class="hearts" id="bossHearts"></div>
+        </div>
+      </div>
+      <button class="iconbtn" id="testSkipBoss" title="בדיקה: נצח בוס" style="display:none">🧪</button>
+      <button class="iconbtn" id="bossQuit">✕</button>
+    </div>
+    <div class="bossPotionRow" id="bossActivePotions"></div>
+    <div class="bossStatsRow">
+      <div class="qcount">שאלה <span id="bossQNum">1</span></div>
+      <div class="bossTally"><span class="ok">✅ <span id="bossOkN">0</span></span><span class="bad">❌ <span id="bossBadN">0</span></span></div>
+    </div>
+    <div class="exwrap">
+      <div class="levelinfo" id="bossLevelInfo"></div>
+      <div class="prompt" id="bossPrompt"></div>
+      <div class="stage-hebrew" id="bossHeb"></div>
+      <div id="bossStage"></div>
+      <div class="options" id="bossOptions"></div>
+    </div>
+  </section>
+
+  <!-- LEADERBOARD -->
+  <section id="s-leader" class="screen">
+    <div class="dash">
+      <button class="btn ghost backbtn" id="leaderBack">‹ חזרה</button>
+      <h1 style="margin-top:0;text-align:center">🏆 טבלת אלופים</h1>
+      <div id="leaderList"></div>
+    </div>
+  </section>
+
+  <!-- BOSS RESULT -->
+  <section id="s-bossresult" class="screen center">
+    <div class="celebrate">
+      <div class="big" id="bossResEmoji">🏆</div>
+      <h1 id="bossResTitle">ניצחת!</h1>
+      <p class="sub" id="bossResMsg"></p>
+      <div class="coins" style="margin:0 auto 20px;width:max-content">🪙 +<span id="bossResCoins">0</span></div>
+      <div class="row" style="justify-content:center">
+        <button class="btn big gold" id="bossNext">המשך ➜</button>
+        <button class="btn" id="bossRetry">🔁 נסה שוב</button>
+        <button class="btn ghost" id="bossToMap">למפה</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- EXERCISE -->
+  <section id="s-ex" class="screen">
+    <div class="topbar">
+      <button class="iconbtn" id="quitEx">✕</button>
+      <div style="flex:1">
+        <div class="progress"><div id="exProg"></div></div>
+      </div>
+      <div class="qcount">שאלה <span id="exCount">1 / 12</span></div>
+      <div class="coins">🪙 <span id="coinN2">0</span></div>
+      <button class="iconbtn" id="testSkipEx" title="בדיקה: סיים שלב" style="display:none">🧪</button>
+    </div>
+    <div class="exwrap">
+      <div class="levelinfo" id="exLevelInfo"></div>
+      <div class="prompt" id="exPrompt"></div>
+      <div class="stage-hebrew" id="exHeb"></div>
+      <div id="exStage"></div>
+      <div class="options" id="exOptions"></div>
+    </div>
+  </section>
+
+  <!-- LEVEL COMPLETE -->
+  <section id="s-done" class="screen center">
+    <div class="celebrate">
+      <div class="big" id="doneEmoji">🎉</div>
+      <h1 id="doneTitle">כל הכבוד!</h1>
+      <div class="starrow" id="doneStars">⭐⭐⭐</div>
+      <p class="sub" id="doneMsg"></p>
+      <div class="coins" style="margin:0 auto 20px;width:max-content">🪙 +<span id="doneCoins">0</span></div>
+      <div class="row" style="justify-content:center">
+        <button class="btn big gold" id="nextLevel">הבא ➜</button>
+        <button class="btn" id="replayLevel">🔁 שוב</button>
+        <button class="btn ghost" id="toMap">למפה</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- PARENT PIN -->
+  <section id="s-pin" class="screen center">
+    <button class="btn ghost backbtn" data-back="s-profile">‹ חזרה</button>
+    <div style="margin:auto;text-align:center">
+      <h1>אזור הורים</h1>
+      <p class="sub">הזינו קוד</p>
+      <input class="pin" id="pinInput" type="password" inputmode="numeric" maxlength="4" placeholder="••••">
+      <div style="margin-top:18px"><button class="btn big" id="pinOk">כניסה</button></div>
+      <p class="hint" id="pinHint">קוד ברירת מחדל: <span class="kbd">1234</span> (ניתן לשנות בפנים)</p>
+    </div>
+  </section>
+
+  <!-- PARENT DASHBOARD -->
+  <section id="s-dash" class="screen">
+    <div class="dash">
+      <button class="btn ghost backbtn" data-back="s-profile">‹ יציאה</button>
+      <h1 style="margin-top:0">לוח הורים</h1>
+      <div class="kid-tabs" id="kidTabs"></div>
+
+      <div class="card">
+        <h3>⏱️ זמן משחק יומי (דקות)</h3>
+        <div class="bars" id="timeBars"></div>
+        <p class="hint" id="timeSummary"></p>
+      </div>
+
+      <div class="card">
+        <h3>📈 התקדמות ידע לפי תחום</h3>
+        <div id="skillBars"></div>
+        <p class="hint">הרמה מתעדכנת לפי הביצועים. 100% = שליטה מלאה ברמה הנוכחית, ואז הרמה עולה.</p>
+      </div>
+
+      <div class="card">
+        <h3>🧠 התקדמות לאורך זמן</h3>
+        <div class="bars" id="histBars"></div>
+        <p class="hint">ממוצע השליטה בכל התחומים, יום אחר יום.</p>
+      </div>
+
+      <div class="card">
+        <h3>🔧 שיפור המשחק — מה קשה ומה קל מדי</h3>
+        <div id="teleList"></div>
+        <p class="hint">נתונים אלה עוזרים לכוונן את המשחק: פריטים קשים מדי (מתחת ל‑40% הצלחה) או קלים מדי (מעל 95%), וטעויות נפוצות.</p>
+      </div>
+
+      <div class="card">
+        <h3>⚙️ הגדרות</h3>
+        <div class="skill">
+          <label class="lab">שינוי קוד הורים</label>
+          <input class="pin" id="newPin" type="text" inputmode="numeric" maxlength="4" placeholder="1234" style="font-size:1.4rem;letter-spacing:8px;width:140px">
+          <button class="btn" id="savePin" style="margin-inline-start:10px">שמור</button>
+        </div>
+        <div style="margin-top:18px">
+          <button class="btn ghost" id="exportData">📤 ייצוא נתונים (גיבוי)</button>
+          <button class="btn ghost" id="resetKid" style="margin-inline-start:10px">איפוס שחקן נבחר</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>☁️ סנכרון בין מכשירים</h3>
+        <div class="skill">
+          <label class="lab">קוד משפחה</label>
+          <input class="pin" id="familyCodeInput" type="text" maxlength="24" placeholder="לדוגמה: ginzburg2026" style="font-size:1.1rem;letter-spacing:1px;width:240px;text-transform:none">
+          <button class="btn" id="saveFamilyCode" style="margin-inline-start:10px">שמור וסנכרן</button>
+          <button class="btn ghost" id="syncNow" style="margin-inline-start:10px">🔄 סנכרון עכשיו</button>
+        </div>
+        <p class="hint" id="syncStatus" style="margin-top:8px"></p>
+        <p class="hint">הזינו את אותו קוד בכל מכשיר (טלפון של אביב, טלפון של שחר, המחשב שלכם) כדי שכל ההתקדמות תופיע בכל מקום ובלוח ההורים הזה — גם מרחוק. הקוד הוא כמו סיסמה משפחתית פשוטה, לא צריך אימייל או הרשמה בכל מכשיר.</p>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script>
+"use strict";
+/* Version: bump the minor (2.0 -> 2.1) for each change; major (-> 3.0) for a big new phase */
+const VERSION='5.1';
+/* ---- CLOUD SYNC CONFIG ----
+   Both are safe to leave in this file — the anon/publishable key is meant to be
+   public; real protection comes from the per-family "sync code" each device enters. */
+const SUPABASE_URL='https://ajbtjnudczzezqrcphlv.supabase.co';
+const SUPABASE_ANON_KEY='sb_publishable_o6uEu5SDmUZK0Q06ZDcM2A_WBYz5sZl';
+const ZONE_LEN=10;   // levels per zone; the last level of each zone is the boss battle
+const BOSS_TARGET_HITS=40;   // roughly how many correct answers a fresh-geared player needs to beat a boss (grows per zone)
+const DAILY_GOAL=20; // correct answers needed in a day to complete the daily goal
+const DAILY_BONUS=25; // coin reward for completing the daily goal (once per day)
+/* ============================================================
+   WordQuest — Phase 1
+   Adaptive English game for Aviv & Shahar (Hebrew UI, English content)
+   Single-file PWA. Data persists locally; storage layer is
+   abstracted (Store.*) so a cloud backend can drop in later.
+   ============================================================ */
+
+/* ---------- STORAGE LAYER (swap for cloud later) ---------- */
+const Store = {
+  key:'wordquest_v1',
+  data:null,
+  load(){
+    try{ this.data = JSON.parse(localStorage.getItem(this.key)) || null; }catch(e){ this.data=null; }
+    if(!this.data) this.data = this.fresh();
+    // migration: cloud-sync timestamp (used to decide which device's save is newer)
+    if(this.data.updatedAt===undefined) this.data.updatedAt=0;
+    // migration: make sure the tester profile exists even on older saves
+    if(!this.data.players.tester) this.data.players.tester = this.freshPlayer('Tester','בודק (הורה)','🧪');
+    // migration: shop fields for older saves
+    Object.values(this.data.players).forEach(pl=>{
+      if(!pl.owned) pl.owned=[pl.ava];
+      if(!pl.ownedThemes) pl.ownedThemes=['default'];
+      if(!pl.theme) pl.theme='default';
+      if(!pl.gear) pl.gear=[];
+      if(pl.equippedGear===undefined) pl.equippedGear='';
+      if(!pl.potions) pl.potions={dmg:0,shield:0,crit:0};
+      if(!pl.daily) pl.daily={date:null,correct:0,met:false};
+      if(pl.lastGoalDate===undefined) pl.lastGoalDate=null;
+    });
+    return this.data;
+  },
+  fresh(){
+    return {
+      updatedAt:0,             // bumped on every save(); cloud sync uses this to pick the newer copy
+      settings:{ pin:'1234' },
+      players:{
+        aviv:  this.freshPlayer('Aviv','אביב','🥷'),
+        shahar:this.freshPlayer('Shahar','שחר','🦖'),
+        tester:this.freshPlayer('Tester','בודק (הורה)','🤖')
+      },
+      telemetry:{ items:{} }   // itemId -> {shown,correct,wrong:{answer:count}}
+    };
+  },
+  freshPlayer(en,he,ava){
+    return { en, he, ava, coins:0, streakDays:0, lastPlayed:null,
+      level:1, maxLevel:1, stars:{},              // stars[level]=1..3
+      ability:{ letters:0, sounds:0, words:0, listening:0 },
+      review:[],                                   // spaced-repetition queue
+      time:{},                                     // 'YYYY-MM-DD' -> seconds
+      history:[],                                  // [{date, avg, coins}]
+      owned:[ava], ownedThemes:['default'], theme:'default',  // shop
+      gear:[], equippedGear:'',
+      potions:{dmg:0,shield:0,crit:0},                        // consumables for boss battles
+      daily:{date:null,correct:0,met:false}, lastGoalDate:null // daily goal + streak (Duolingo-style)
+    };
+  },
+  save(){
+    this.data.updatedAt=Date.now();
+    this.saveLocalOnly();
+    if(typeof Sync!=='undefined') Sync.queuePush();
+  },
+  // writes to localStorage without touching the cloud — used when Sync applies a remote pull
+  saveLocalOnly(){ try{ localStorage.setItem(this.key, JSON.stringify(this.data)); }catch(e){} },
+  player(id){ return this.data.players[id]; }
+};
+
+/* ---------- CLOUD SYNC (Supabase) ----------
+   Optional: only active once SUPABASE_URL/ANON_KEY (above) are filled in AND a
+   device has a "family sync code" saved. Every family member's device that shares
+   the same code reads/writes the same row, so progress/leaderboard/parent
+   dashboard stay in sync across phones + PC. Whole-profile last-write-wins per
+   family (via `updatedAt`) — plenty for one household where devices aren't used
+   by two people at the exact same second. Fails silently offline. */
+const Sync = {
+  key:'wordquest_family_code',
+  client:null,
+  enabled:false,
+  pushTimer:null,
+  status:'offline',   // offline | syncing | synced | error
+
+  code(){ return (localStorage.getItem(this.key)||'').trim(); },
+  setCode(c){ localStorage.setItem(this.key, (c||'').trim()); },
+
+  init(){
+    if(!window.supabase || !SUPABASE_URL || SUPABASE_URL.indexOf('YOUR-SUPABASE')>-1){ this.enabled=false; return; }
+    try{ this.client=window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); this.enabled=true; }
+    catch(e){ this.enabled=false; }
+  },
+
+  async pullAll(){
+    if(!this.enabled || !this.code()) return;
+    this.status='syncing'; this.renderStatus();
+    try{
+      const { data, error } = await this.client.from('wq_saves').select('data,updated_at').eq('family_code', this.code()).maybeSingle();
+      if(error) throw error;
+      if(data && (data.updated_at||0) > (Store.data.updatedAt||0)){
+        Store.data = data.data;
+        Store.saveLocalOnly();
+      }
+      this.status='synced';
+    }catch(e){ this.status='error'; console.warn('[Sync] pull failed', e); }
+    this.renderStatus();
+  },
+
+  queuePush(){
+    if(!this.enabled || !this.code()) return;
+    clearTimeout(this.pushTimer);
+    this.pushTimer=setTimeout(()=>this.pushAll(), 1000);
+  },
+
+  async pushAll(){
+    if(!this.enabled || !this.code()) return;
+    this.status='syncing'; this.renderStatus();
+    try{
+      const row={ family_code:this.code(), data:Store.data, updated_at:Store.data.updatedAt };
+      const { error } = await this.client.from('wq_saves').upsert(row, { onConflict:'family_code' });
+      if(error) throw error;
+      this.status='synced';
+    }catch(e){ this.status='error'; console.warn('[Sync] push failed', e); }
+    this.renderStatus();
+  },
+
+  renderStatus(){
+    const el=document.getElementById('syncStatus'); if(!el) return;
+    if(!this.enabled){ el.textContent='⚪ סנכרון ענן לא הוגדר עדיין (ראו SUPABASE_SETUP.md)'; return; }
+    if(!this.code()){ el.textContent='⚪ מצב מקומי — לא הוזן קוד משפחה במכשיר הזה'; return; }
+    const labels={ syncing:'🔄 מסנכרן…', synced:'🟢 מסונכרן לענן', error:'🔴 שגיאת סנכרון (הנתונים נשמרו מקומית)' };
+    el.textContent = labels[this.status] || '';
+  }
+};
+
+/* ---------- AUDIO (Web Speech API — free, built-in English TTS) ---------- */
+const Speech = {
+  voice:null,
+  // rank the available voices and pick the most natural-sounding one on this device
+  rank(v){
+    const n=(v.name||'').toLowerCase(); let s=0;
+    if(/en[-_]us/i.test(v.lang)) s+=5; else if(/^en/i.test(v.lang)) s+=3;
+    if(/natural|neural/.test(n)) s+=12;                 // Edge "Online (Natural)" voices — very human
+    if(/google/.test(n)) s+=7;                          // Chrome "Google US English" — decent
+    if(/\b(aria|jenny|guy|michelle|ava|samantha|zira|libby|sonia|emma)\b/.test(n)) s+=5;
+    if(/online/.test(n)) s+=2;
+    return s;
+  },
+  init(){
+    const pick=()=>{ const vs=speechSynthesis.getVoices(); if(!vs.length) return;
+      this.voice = vs.slice().sort((a,b)=>this.rank(b)-this.rank(a))[0] || null; };
+    pick(); if(speechSynthesis.onvoiceschanged!==undefined) speechSynthesis.onvoiceschanged=pick;
+  },
+  say(text,rate=.85){
+    try{
+      const synth=window.speechSynthesis; if(!synth) return;
+      synth.cancel();
+      const u=new SpeechSynthesisUtterance(text); u.lang='en-US'; u.rate=rate; u.pitch=1.05;
+      if(this.voice) u.voice=this.voice;
+      // Chrome drops speech when speak() runs immediately after cancel(); a short delay + resume() fixes it
+      clearTimeout(this._t);
+      this._t=setTimeout(()=>{ try{ synth.resume(); synth.speak(u); }catch(e){} }, 60);
+    }catch(e){}
+  },
+  // unlock audio on first user gesture (browsers block TTS until then)
+  prime(){ try{ const s=window.speechSynthesis; if(!s) return; const u=new SpeechSynthesisUtterance(' '); u.volume=0; s.speak(u); }catch(e){} },
+  letter(l){ this.say(l,0.8); }
+};
+
+/* ---------- CONTENT ---------- */
+const LETTERS='ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+const CONFUSE={B:'DPR',D:'BPO',P:'BQR',Q:'OGP',G:'CQO',C:'GOQ',M:'NW',N:'MH',
+  E:'FB',F:'ET',I:'JLT',J:'IL',U:'VY',V:'UWY',W:'MVU',O:'QGDC',R:'BPK'};
+
+const WORDS=[
+  {w:'cat',e:'🐱',d:1},{w:'dog',e:'🐶',d:1},{w:'pig',e:'🐷',d:1},{w:'cow',e:'🐮',d:1},
+  {w:'fox',e:'🦊',d:1},{w:'hen',e:'🐔',d:1},{w:'bee',e:'🐝',d:1},{w:'owl',e:'🦉',d:1},
+  {w:'frog',e:'🐸',d:2},{w:'fish',e:'🐟',d:2},{w:'bird',e:'🐦',d:2},{w:'duck',e:'🦆',d:2},
+  {w:'lion',e:'🦁',d:2},{w:'bear',e:'🐻',d:2},{w:'goat',e:'🐐',d:2},{w:'snake',e:'🐍',d:3},
+  {w:'horse',e:'🐴',d:3},{w:'sheep',e:'🐑',d:3},{w:'mouse',e:'🐭',d:3},{w:'rabbit',e:'🐰',d:3},
+  {w:'monkey',e:'🐵',d:3},{w:'penguin',e:'🐧',d:4},{w:'elephant',e:'🐘',d:4},{w:'butterfly',e:'🦋',d:4},
+  {w:'egg',e:'🥚',d:1},{w:'cake',e:'🍰',d:2},{w:'milk',e:'🥛',d:2},{w:'corn',e:'🌽',d:2},
+  {w:'apple',e:'🍎',d:2},{w:'bread',e:'🍞',d:3},{w:'pizza',e:'🍕',d:3},{w:'banana',e:'🍌',d:3},
+  {w:'grapes',e:'🍇',d:3},{w:'cheese',e:'🧀',d:3},{w:'cookie',e:'🍪',d:3},{w:'carrot',e:'🥕',d:3},
+  {w:'sun',e:'☀️',d:1},{w:'moon',e:'🌙',d:2},{w:'star',e:'⭐',d:2},{w:'tree',e:'🌳',d:2},
+  {w:'rain',e:'🌧️',d:2},{w:'snow',e:'❄️',d:2},{w:'fire',e:'🔥',d:2},{w:'leaf',e:'🍃',d:2},
+  {w:'flower',e:'🌸',d:3},{w:'cloud',e:'☁️',d:3},{w:'rainbow',e:'🌈',d:4},{w:'mountain',e:'⛰️',d:4},
+  {w:'ball',e:'⚽',d:2},{w:'book',e:'📖',d:2},{w:'car',e:'🚗',d:1},{w:'bus',e:'🚌',d:1},
+  {w:'boat',e:'⛵',d:2},{w:'key',e:'🔑',d:1},{w:'cup',e:'☕',d:1},{w:'hat',e:'🎩',d:1},
+  {w:'bell',e:'🔔',d:2},{w:'drum',e:'🥁',d:2},{w:'clock',e:'🕐',d:3},{w:'house',e:'🏠',d:3},
+  {w:'train',e:'🚆',d:3},{w:'plane',e:'✈️',d:3},{w:'rocket',e:'🚀',d:3},{w:'guitar',e:'🎸',d:3},
+  // --- expanded vocabulary ---
+  {w:'tiger',e:'🐯',d:3},{w:'zebra',e:'🦓',d:3},{w:'giraffe',e:'🦒',d:4},{w:'turtle',e:'🐢',d:3},
+  {w:'crab',e:'🦀',d:2},{w:'octopus',e:'🐙',d:4},{w:'whale',e:'🐳',d:3},{w:'dolphin',e:'🐬',d:4},
+  {w:'snail',e:'🐌',d:3},{w:'parrot',e:'🦜',d:3},{w:'deer',e:'🦌',d:2},{w:'koala',e:'🐨',d:3},
+  {w:'camel',e:'🐫',d:3},{w:'shark',e:'🦈',d:3},{w:'spider',e:'🕷️',d:3},{w:'ant',e:'🐜',d:1},
+  {w:'worm',e:'🪱',d:2},{w:'crocodile',e:'🐊',d:4},{w:'dinosaur',e:'🦕',d:4},{w:'ladybug',e:'🐞',d:4},
+  {w:'orange',e:'🍊',d:3},{w:'lemon',e:'🍋',d:3},{w:'cherry',e:'🍒',d:3},{w:'peach',e:'🍑',d:3},
+  {w:'tomato',e:'🍅',d:3},{w:'potato',e:'🥔',d:3},{w:'burger',e:'🍔',d:3},{w:'fries',e:'🍟',d:3},
+  {w:'donut',e:'🍩',d:3},{w:'candy',e:'🍬',d:3},{w:'honey',e:'🍯',d:3},{w:'melon',e:'🍉',d:3},
+  {w:'mushroom',e:'🍄',d:4},{w:'popcorn',e:'🍿',d:4},{w:'sandwich',e:'🥪',d:4},{w:'strawberry',e:'🍓',d:4},
+  {w:'door',e:'🚪',d:2},{w:'chair',e:'🪑',d:3},{w:'bed',e:'🛏️',d:1},{w:'lamp',e:'💡',d:2},
+  {w:'phone',e:'📱',d:3},{w:'pencil',e:'✏️',d:3},{w:'kite',e:'🪁',d:2},{w:'balloon',e:'🎈',d:4},
+  {w:'gift',e:'🎁',d:2},{w:'umbrella',e:'☂️',d:4},{w:'candle',e:'🕯️',d:3},{w:'camera',e:'📷',d:3},
+  {w:'teddy',e:'🧸',d:3},{w:'scissors',e:'✂️',d:4},{w:'crayon',e:'🖍️',d:3},
+  {w:'taxi',e:'🚕',d:2},{w:'bike',e:'🚲',d:2},{w:'truck',e:'🚚',d:3},{w:'ship',e:'🚢',d:2},
+  {w:'scooter',e:'🛴',d:4},{w:'tractor',e:'🚜',d:4},{w:'helicopter',e:'🚁',d:4},
+  {w:'eye',e:'👁️',d:1},{w:'ear',e:'👂',d:1},{w:'nose',e:'👃',d:2},{w:'hand',e:'✋',d:2},{w:'tooth',e:'🦷',d:3},
+  {w:'shirt',e:'👕',d:3},{w:'dress',e:'👗',d:3},{w:'sock',e:'🧦',d:2},{w:'shoe',e:'👟',d:2},
+  {w:'bag',e:'🎒',d:1},{w:'boot',e:'👢',d:2},{w:'glove',e:'🧤',d:3},{w:'crown',e:'👑',d:3},
+  {w:'wave',e:'🌊',d:2},{w:'volcano',e:'🌋',d:4},{w:'island',e:'🏝️',d:3},{w:'earth',e:'🌍',d:3},
+  {w:'cactus',e:'🌵',d:3},{w:'basketball',e:'🏀',d:5},{w:'tennis',e:'🎾',d:3},{w:'medal',e:'🥇',d:3},
+  {w:'robot',e:'🤖',d:3},{w:'ghost',e:'👻',d:3},{w:'crystal',e:'💎',d:4}
+];
+
+// two-letter blends (digraphs) that make one sound — used by the letters "typeDigraph" question type
+const DIGRAPHS=[
+  {w:'chair',e:'🪑',pair:'ch'},{w:'cheese',e:'🧀',pair:'ch'},
+  {w:'shark',e:'🦈',pair:'sh'},{w:'sheep',e:'🐑',pair:'sh'},
+  {w:'think',e:'🤔',pair:'th'},
+  {w:'wheel',e:'🛞',pair:'wh'},{w:'whale',e:'🐳',pair:'wh'},
+  {w:'phone',e:'📱',pair:'ph'}
+];
+
+const SKILL_HE={letters:'זיהוי אותיות',sounds:'צלילים (פוֹנטיקה)',words:'אוצר מילים',listening:'הקשבה'};
+const SKILL_COLOR={letters:'#60a5fa',sounds:'#a855f7',words:'#22c55e',listening:'#f59e0b'};
+
+/* ---------- QUESTION TYPES per skill area ----------
+   Each area keeps its original multi-select modes AND gets >=3 new typed-answer modes.
+   A normal level focuses on ONE (skill,type) pair; boss battles mix everything. */
+const SKILL_TYPES={
+  letters:  ['caseU2L','caseL2U','audio','typeCaseU2L','typeCaseL2U','typeAudio','matchSame','typeDigraph'],
+  sounds:   ['pickFirst','typeFirstPic','typeFirstAudio','typeLastPic'],
+  words:    ['pickPic','typeWordPic','typeMissing','typeUnscramble'],
+  listening:['pickAudio','typeWordAudio','typeMissingAudio','typeFirstAudio']
+};
+const TYPE_HE={
+  letters:{caseU2L:'התאמה: גדולה→קטנה',caseL2U:'התאמה: קטנה→גדולה',audio:'זיהוי צליל אות',
+    typeCaseU2L:'הקלדה: גדולה→קטנה',typeCaseL2U:'הקלדה: קטנה→גדולה',typeAudio:'הקלדה: שמיעת אות',
+    matchSame:'התאמת אותיות זהות',typeDigraph:'הקלדת צירוף אותיות (ch/sh/th/wh/ph)'},
+  sounds:{pickFirst:'בחירת אות פותחת',typeFirstPic:'הקלדת אות פותחת (תמונה)',typeFirstAudio:'הקלדת אות פותחת (שמיעה)',typeLastPic:'הקלדת אות מסיימת'},
+  words:{pickPic:'התאמת מילה לתמונה',typeWordPic:'הקלדת מילה מתמונה',typeMissing:'השלמת אות חסרה',typeUnscramble:'סידור אותיות למילה'},
+  listening:{pickAudio:'הקשבה ובחירה',typeWordAudio:'הקלדה מהאזנה',typeMissingAudio:'השלמת אות מהאזנה',typeFirstAudio:'הקלדת אות פותחת מהאזנה'}
+};
+
+/* ---------- ENGINE ---------- */
+const MAX_ABILITY=100;
+const Engine={
+  skillsForLevel(lv){
+    const s=['letters'];
+    if(lv>=3) s.push('sounds');
+    if(lv>=5) s.push('words','listening');
+    return s;
+  },
+  masteryPct(p,skill){ return Math.round(Math.min(100, (p.ability[skill]/MAX_ABILITY)*100)); },
+  avgMastery(p){ const ks=Object.keys(p.ability); return Math.round(ks.reduce((a,k)=>a+this.masteryPct(p,k),0)/ks.length); },
+
+  // which single (skill,type) pair this level focuses on — deterministic per level number,
+  // cycling through every type of every currently-unlocked skill over time.
+  levelFocus(lv){
+    const skills=this.skillsForLevel(lv);
+    const pool=[];
+    skills.forEach(sk=>SKILL_TYPES[sk].forEach(t=>pool.push({skill:sk,type:t})));
+    if(!pool.length) pool.push({skill:'letters',type:'caseU2L'});
+    return pool[(lv-1)%pool.length];
+  },
+
+  // What did THIS zone's practice levels actually teach? A boss battle should test that —
+  // not just whatever skillsForLevel() has globally "unlocked" by that raw level number.
+  // Returns {thisZone:[{skill,type},...], prior:[...]} — thisZone = focuses actually drilled
+  // in this zone's own practice levels; prior = focuses drilled in earlier zones (for a light
+  // review mix). Boss levels themselves (multiples of ZONE_LEN) are skipped — they're not practice.
+  bossPool(world){
+    const zoneStart=(world-1)*ZONE_LEN+1, zoneEnd=world*ZONE_LEN-1;
+    const thisZone=[], prior=[];
+    const seenThis=new Set(), seenPrior=new Set();
+    for(let lv=1; lv<=zoneEnd; lv++){
+      if(lv%ZONE_LEN===0) continue;              // skip boss levels — not practice content
+      const f=this.levelFocus(lv), key=f.skill+'|'+f.type;
+      if(lv>=zoneStart){ if(!seenThis.has(key)){ seenThis.add(key); thisZone.push(f); } }
+      else { if(!seenPrior.has(key)){ seenPrior.add(key); prior.push(f); } }
+    }
+    if(!thisZone.length) thisZone.push({skill:'letters',type:'caseU2L'});
+    return {thisZone, prior};
+  },
+
+  buildLevel(p, lv){
+    const focus=this.levelFocus(lv);
+    const qs=[]; const N=12; const used=new Set();
+    // dedupe by itemId so the same question can't appear twice in one level
+    const add=(q)=>{ if(!q||used.has(q.itemId)) return false; used.add(q.itemId); qs.push(q); return true; };
+    // spaced-repetition review items are shown in THIS level's focused type when they share its skill
+    p.review.filter(r=>r.due<=Date.now()).slice(0,2).forEach(r=>
+      add(this.makeQuestion(p,r.skill,r.diff,r.itemId, focus.skill===r.skill?focus.type:undefined)));
+    let guard=0;
+    while(qs.length<N && guard++<200){
+      const diff=this.pickDiff(p,focus.skill,lv);
+      add(this.makeQuestion(p,focus.skill,diff,null,focus.type));
+    }
+    const shuffled=qs.sort(()=>Math.random()-0.5);
+    shuffled.focus=focus;
+    return shuffled;
+  },
+  pickSkill(p,skills){
+    const weights=skills.map(s=>Math.max(5,100-this.masteryPct(p,s)));
+    const total=weights.reduce((a,b)=>a+b,0); let r=Math.random()*total;
+    for(let i=0;i<skills.length;i++){ r-=weights[i]; if(r<=0) return skills[i]; }
+    return skills[0];
+  },
+  pickDiff(p,skill,lv){
+    const m=this.masteryPct(p,skill);
+    let base = 1 + Math.floor(m/25) + Math.floor(lv/6);
+    base = Math.min(base, 5);
+    const roll=Math.random();
+    if(roll<0.2) base=Math.max(1,base-1);
+    else if(roll>0.85) base=Math.min(5,base+1);
+    return base;
+  },
+
+  makeQuestion(p,skill,diff,forceItem,mode){
+    const numOpts = 4; // always 4 options for consistency
+    if(skill==='letters'){
+      const modes=SKILL_TYPES.letters;
+      let m=mode||modes[Math.floor(Math.random()*modes.length)];
+      let target=LETTERS[Math.floor(Math.random()*26)];
+      if(forceItem&&forceItem[0]==='L'){ target=forceItem.slice(2); }
+      const base={skill,diff,itemId:'L_'+target,mode:m,prompt:''};
+      if(m==='audio'){
+        const opts=this.letterOptions(target,numOpts,diff);
+        return {...base, heb:'לחצו על האות שאתם שומעים',
+          stageType:'audio', stageValue:target, say:target,
+          options:opts.map(o=>({label:o,correct:o===target,cls:'',speak:o})), answer:target};
+      }
+      if(m==='caseU2L'||m==='caseL2U'){
+        const showUpper = m==='caseU2L';
+        const shown = showUpper ? target : target.toLowerCase();
+        const toOpt = showUpper ? (l=>l.toLowerCase()) : (l=>l.toUpperCase());
+        const opts=this.letterOptions(target,numOpts,diff);
+        return {...base, heb: showUpper?'מצאו את האות הקטנה המתאימה':'מצאו את האות הגדולה המתאימה',
+          stageType:'letter', stageValue:shown, say:target,
+          options:opts.map(o=>({label:toOpt(o),correct:o===target,cls:'',speak:o})), answer:toOpt(target)};
+      }
+      // --- typed modes ---
+      if(m==='typeCaseU2L'){
+        // must type the LOWERCASE letter exactly — typing the uppercase form is wrong (that's the whole point of this drill)
+        return {...base, heb:'הקלידו את האות הקטנה המתאימה', stageType:'letter', stageValue:target, say:target,
+          inputType:'text', maxLen:1, answer:target.toLowerCase(),
+          check:v=>v.trim()===target.toLowerCase()};
+      }
+      if(m==='typeCaseL2U'){
+        // must type the UPPERCASE letter exactly — typing the lowercase form is wrong
+        return {...base, heb:'הקלידו את האות הגדולה המתאימה', stageType:'letter', stageValue:target.toLowerCase(), say:target,
+          inputType:'text', maxLen:1, answer:target,
+          check:v=>v.trim()===target};
+      }
+      if(m==='typeAudio'){
+        return {...base, heb:'הקשיבו והקלידו את האות ששמעתם', stageType:'audio', stageValue:target, say:target,
+          inputType:'text', maxLen:1, answer:target,
+          check:v=>v.trim().toUpperCase()===target};
+      }
+      if(m==='matchSame'){
+        // pure letter-identity matching (no case conversion, no ordering) — options shown in mixed case
+        const opts=this.letterOptions(target,numOpts,diff);
+        const dispTarget = Math.random()<0.5 ? target : target.toLowerCase();
+        const dispOpts = opts.map(o=> Math.random()<0.5 ? o : o.toLowerCase());
+        return {...base, heb:'איזו אות זהה לאות שלמעלה?', stageType:'letter', stageValue:dispTarget, say:target,
+          options:opts.map((o,i)=>({label:dispOpts[i], correct:o===target, cls:'', speak:o})), answer:dispTarget};
+      }
+      // typeDigraph — hear a word, type the two letters that make its opening blend (ch/sh/th/wh/ph)
+      const dg=DIGRAPHS[Math.floor(Math.random()*DIGRAPHS.length)];
+      return {...base, itemId:'L_DG_'+dg.w, heb:'הקשיבו והקלידו את שני האותיות שפותחות את הצליל (למשל ch, sh, th, wh, ph)',
+        stageType:'emoji', stageValue:dg.e, say:dg.w,
+        inputType:'text', maxLen:2, answer:dg.pair, check:v=>v.trim().toLowerCase()===dg.pair};
+    }
+    if(skill==='sounds'){
+      const modes=SKILL_TYPES.sounds;
+      let m=mode||modes[Math.floor(Math.random()*modes.length)];
+      const item = (forceItem&&forceItem[0]==='S')? (WORDS.find(w=>'S_'+w.w===forceItem)||this.randWord(diff)) : this.randWord(diff);
+      const first=item.w[0].toUpperCase(), last=item.w[item.w.length-1].toUpperCase();
+      const base={skill,diff,itemId:'S_'+item.w,mode:m,prompt:''};
+      if(m==='pickFirst'){
+        const opts=this.letterOptions(first,numOpts,diff+1);
+        return {...base, heb:'?באיזו אות מתחילה המילה',
+          stageType:'emoji', stageValue:item.e, say:item.w,
+          options:opts.map(o=>({label:o,correct:o===first,cls:'',speak:o})), answer:first};
+      }
+      if(m==='typeFirstPic'){
+        return {...base, heb:'הקלידו את האות הראשונה של המילה', stageType:'emoji', stageValue:item.e, say:item.w,
+          inputType:'text', maxLen:1, answer:first, check:v=>v.trim().toUpperCase()===first};
+      }
+      if(m==='typeFirstAudio'){
+        return {...base, heb:'הקשיבו והקלידו את האות הראשונה', stageType:'audio', stageValue:item.w, say:item.w,
+          inputType:'text', maxLen:1, answer:first, check:v=>v.trim().toUpperCase()===first};
+      }
+      // typeLastPic
+      return {...base, heb:'הקלידו את האות האחרונה של המילה', stageType:'emoji', stageValue:item.e, say:item.w,
+        inputType:'text', maxLen:1, answer:last, check:v=>v.trim().toUpperCase()===last};
+    }
+    if(skill==='words'){
+      const modes=SKILL_TYPES.words;
+      let m=mode||modes[Math.floor(Math.random()*modes.length)];
+      const item = (forceItem&&forceItem[0]==='W')? (WORDS.find(w=>'W_'+w.w===forceItem)||this.randWord(diff)) : this.randWord(diff);
+      const base={skill,diff,itemId:'W_'+item.w,mode:m,prompt:''};
+      if(m==='pickPic'){
+        const opts=this.wordPicOptions(item,numOpts);
+        return {...base, heb:'?אֵיזו תמונה מתאימה למילה',
+          stageType:'word', stageValue:item.w, say:item.w,
+          options:opts.map(o=>({label:o.e,correct:o.w===item.w,cls:'',speak:o.w})), answer:item.e};
+      }
+      if(m==='typeWordPic'){
+        return {...base, heb:'הקלידו את המילה באנגלית', stageType:'emoji', stageValue:item.e, say:item.w,
+          inputType:'text', maxLen:16, answer:item.w, check:v=>v.trim().toLowerCase()===item.w};
+      }
+      if(m==='typeMissing'){
+        const mi=Math.floor(Math.random()*item.w.length);
+        const masked=item.w.split('').map((c,i)=>i===mi?'_':c).join('').toUpperCase();
+        return {...base, heb:'השלימו את האות החסרה במילה', stageType:'wordmask', stageValue:masked, say:item.w, pic:item.e,
+          inputType:'text', maxLen:1, answer:item.w[mi], check:v=>v.trim().toLowerCase()===item.w[mi]};
+      }
+      // typeUnscramble
+      let scrambled=item.w, g=0;
+      do{ scrambled=item.w.split('').sort(()=>Math.random()-0.5).join(''); }while(scrambled===item.w && item.w.length>1 && g++<10);
+      return {...base, heb:'סדרו את האותיות וכתבו את המילה הנכונה', stageType:'wordmask', stageValue:scrambled.toUpperCase(), say:item.w, pic:item.e,
+        inputType:'text', maxLen:16, answer:item.w, check:v=>v.trim().toLowerCase()===item.w};
+    }
+    // listening
+    const modes=SKILL_TYPES.listening;
+    let m=mode||modes[Math.floor(Math.random()*modes.length)];
+    const item = (forceItem&&forceItem[0]==='N')? (WORDS.find(w=>'N_'+w.w===forceItem)||this.randWord(diff)) : this.randWord(diff);
+    const base={skill,diff,itemId:'N_'+item.w,mode:m,prompt:''};
+    if(m==='pickAudio'){
+      if(diff>=4){
+        const opts=this.wordTextOptions(item,numOpts);
+        return {...base, heb:'הקשיבו ובחרו את המילה הנכונה',
+          stageType:'audio', stageValue:item.w, say:item.w,
+          options:opts.map(o=>({label:o.w,correct:o.w===item.w,cls:'word',speak:o.w})), answer:item.w};
+      }
+      const opts=this.wordPicOptions(item,numOpts);
+      return {...base, heb:'הקשיבו ובחרו את התמונה',
+        stageType:'audio', stageValue:item.w, say:item.w,
+        options:opts.map(o=>({label:o.e,correct:o.w===item.w,cls:'',speak:o.w})), answer:item.e};
+    }
+    if(m==='typeWordAudio'){
+      return {...base, heb:'הקשיבו והקלידו את המילה', stageType:'audio', stageValue:item.w, say:item.w,
+        inputType:'text', maxLen:16, answer:item.w, check:v=>v.trim().toLowerCase()===item.w};
+    }
+    if(m==='typeMissingAudio'){
+      const mi=Math.floor(Math.random()*item.w.length);
+      const masked=item.w.split('').map((c,i)=>i===mi?'_':c).join('').toUpperCase();
+      return {...base, heb:'הקשיבו והשלימו את האות החסרה', stageType:'wordmask', stageValue:masked, say:item.w,
+        inputType:'text', maxLen:1, answer:item.w[mi], check:v=>v.trim().toLowerCase()===item.w[mi]};
+    }
+    // typeFirstAudio
+    const first=item.w[0].toUpperCase();
+    return {...base, heb:'הקשיבו והקלידו את האות הראשונה', stageType:'audio', stageValue:item.w, say:item.w,
+      inputType:'text', maxLen:1, answer:first, check:v=>v.trim().toUpperCase()===first};
+  },
+  recentWords:[],
+  randWord(diff){
+    // avoid repeating any word used in the last 15 questions
+    let pool=WORDS.filter(w=>Math.abs(w.d-diff)<=1 && !this.recentWords.includes(w.w));
+    if(!pool.length) pool=WORDS.filter(w=>!this.recentWords.includes(w.w));
+    if(!pool.length) pool=WORDS;
+    const pick=pool[Math.floor(Math.random()*pool.length)];
+    this.recentWords.push(pick.w); if(this.recentWords.length>15) this.recentWords.shift();
+    return pick;
+  },
+  letterOptions(target,n,diff){
+    const set=new Set([target]);
+    const conf=(CONFUSE[target]||'').split('');
+    if(diff>=3) conf.forEach(c=>{ if(set.size<n) set.add(c); });
+    let guard=0;
+    while(set.size<n && guard++<100){ set.add(LETTERS[Math.floor(Math.random()*LETTERS.length)]); }
+    return [...set].sort(()=>Math.random()-0.5);
+  },
+  wordPicOptions(item,n){
+    const set=[item]; const used=new Set([item.w]); let guard=0;
+    while(set.length<n && guard++<200){ const c=WORDS[Math.floor(Math.random()*WORDS.length)]; if(!used.has(c.w)){used.add(c.w);set.push(c);} }
+    return set.sort(()=>Math.random()-0.5);
+  },
+  wordTextOptions(item,n){ return this.wordPicOptions(item,n); },
+
+  record(p,q,correct,fast){
+    const s=q.skill;
+    if(correct){
+      let gain = 2 + q.diff*(fast?1.2:0.8);
+      p.ability[s]=Math.min(MAX_ABILITY, p.ability[s]+gain);
+      p.review=p.review.filter(r=>r.itemId!==q.itemId);
+    }else{
+      p.ability[s]=Math.max(0, p.ability[s]-3);
+      const ex=p.review.find(r=>r.itemId===q.itemId);
+      if(ex){ ex.due=Date.now()+90*1000; }
+      else p.review.push({itemId:q.itemId,skill:s,diff:q.diff,due:Date.now()+60*1000});
+    }
+  }
+};
+
+/* ---------- TELEMETRY ---------- */
+const Tele={
+  log(itemId,correct,chosenWrong){
+    const t=Store.data.telemetry.items;
+    const it=t[itemId]||(t[itemId]={shown:0,correct:0,wrong:{}});
+    it.shown++; if(correct) it.correct++;
+    else if(chosenWrong!=null){ it.wrong[chosenWrong]=(it.wrong[chosenWrong]||0)+1; }
+  }
+};
+
+/* ---------- SHOP (coin sink: characters, gear, backgrounds) ---------- */
+const Shop={
+  // COOL characters for 9-10 y/o boys — ninjas, robots, beasts, monsters, dragons
+  avatars:[
+    {e:'🥷',price:0},{e:'🦖',price:0},                                   // free starters
+    {e:'🤖',price:250},{e:'👾',price:250},{e:'👽',price:300},{e:'🐺',price:300},
+    {e:'🦅',price:320},{e:'🦈',price:350},{e:'🐍',price:300},{e:'🦂',price:350},
+    {e:'🕷️',price:320},{e:'🦇',price:340},{e:'🦍',price:420},{e:'🐆',price:420},
+    {e:'🧙',price:500},{e:'🦸',price:600},{e:'🧛',price:600},{e:'🧟',price:650},
+    {e:'👹',price:700},{e:'👺',price:700},{e:'🤡',price:500},{e:'💀',price:900},
+    {e:'☠️',price:1000},{e:'🐉',price:1500}                              // legendary
+  ],
+  // GEAR: weapons / props / clothing — equip one; each adds POWER; owning all builds a collection
+  gear:[
+    {e:'🎩',price:150,power:5},{e:'🕶️',price:200,power:6},{e:'🎧',price:200,power:6},
+    {e:'🧢',price:180,power:5},{e:'🥽',price:220,power:7},
+    {e:'🗡️',price:250,power:12},{e:'🔪',price:220,power:10},{e:'🪓',price:300,power:14},
+    {e:'🏹',price:350,power:16},{e:'🛡️',price:350,power:16},{e:'🔫',price:400,power:18},
+    {e:'💣',price:300,power:14},{e:'🔨',price:280,power:12},{e:'🥊',price:260,power:12},
+    {e:'🪄',price:500,power:22},{e:'🔥',price:550,power:24},{e:'⚡',price:600,power:26},
+    {e:'🚀',price:800,power:35},{e:'👑',price:900,power:40},{e:'💎',price:1000,power:45},
+    {e:'🏆',price:1200,power:50},{e:'🔱',price:1500,power:60}
+  ],
+  // BACKGROUNDS: richer, layered gradients (starfields, lava, neon) — not flat colors
+  themes:[
+    {id:'default',name:'קלאסי',price:0,css:'linear-gradient(160deg,#22d3ee 0%,#3b82f6 42%,#8b5cf6 100%)'},
+    {id:'ocean', name:'מעמקי הים',price:250,css:'radial-gradient(circle at 50% -10%,#22d3ee,transparent 45%),linear-gradient(180deg,#0891b2,#0e7490,#083344)'},
+    {id:'sunset',name:'שקיעה',price:300,css:'linear-gradient(160deg,#fb7185,#f59e0b 45%,#7c3aed)'},
+    {id:'forest',name:'יער קסום',price:300,css:'radial-gradient(circle at 80% 10%,#a3e635,transparent 40%),linear-gradient(160deg,#22c55e,#15803d,#052e16)'},
+    {id:'aurora',name:'זוהר הקוטב',price:450,css:'linear-gradient(160deg,#00c9ff,#92fe9d 45%,#7b2ff7)'},
+    {id:'lava',  name:'לבה',price:500,css:'radial-gradient(circle at 50% 120%,#fde047,#f97316 30%,#ef4444 55%,#7f1d1d 85%)'},
+    {id:'neon',  name:'ניאון',price:550,css:'linear-gradient(135deg,#00f5d4,#7b2ff7 50%,#f107a3)'},
+    {id:'cyber', name:'סייבר',price:600,css:'repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 1px,transparent 1px 22px),linear-gradient(135deg,#0ea5e9,#4f46e5,#8b5cf6)'},
+    {id:'galaxy',name:'גלקסיה',price:750,css:'radial-gradient(circle at 30% 30%,#a855f7,transparent 55%),radial-gradient(circle at 70% 75%,#3b82f6,transparent 50%),linear-gradient(#0b1026,#111827)'},
+    {id:'space', name:'חלל עמוק',price:900,css:'radial-gradient(1.5px 1.5px at 20% 30%,#fff,transparent),radial-gradient(1.5px 1.5px at 65% 65%,#fff,transparent),radial-gradient(1px 1px at 80% 20%,#fff,transparent),radial-gradient(1px 1px at 35% 80%,#fff,transparent),radial-gradient(2px 2px at 75% 42%,#fff,transparent),radial-gradient(1px 1px at 50% 15%,#fff,transparent),linear-gradient(160deg,#0b1026,#1e1b4b 60%,#3b0764)'}
+  ],
+  // POTIONS: consumables that help win the (hard) boss battles
+  potions:[
+    {id:'dmg',   e:'⚗️',name:'שיקוי כוח',   desc:'פגיעה כפולה בכל תשובה נכונה',price:120},
+    {id:'shield',e:'🛡️',name:'מגן',         desc:'לב נוסף בקרב',              price:100},
+    {id:'crit',  e:'💥',name:'מכת פתיחה',   desc:'הפגיעה הראשונה ענקית (+40)', price:150}
+  ],
+  buyPotion(p,id,price){ if(p.coins<price) return 'poor'; p.coins-=price; p.potions[id]=(p.potions[id]||0)+1; return 'ok'; },
+  list(p,kind){ return kind==='avatar'?p.owned : kind==='gear'?p.gear : p.ownedThemes; },
+  catalog(kind){ return kind==='avatar'?this.avatars : kind==='gear'?this.gear : this.themes; },
+  themeCss(id){ const t=this.themes.find(x=>x.id===id); return t?t.css:this.themes[0].css; },
+  owns(p,kind,key){ return this.list(p,kind).includes(key); },
+  buy(p,kind,key,price){
+    if(this.owns(p,kind,key)) return 'owned';
+    if(p.coins<price) return 'poor';
+    p.coins-=price; this.list(p,kind).push(key); return 'ok';
+  },
+  // --- battle strength ---
+  // cooler / pricier characters hit harder; equipped weapon adds its power. Both raise your ATTACK.
+  avatarAttack(e){ const a=this.avatars.find(x=>x.e===e); return a ? (3+Math.floor(a.price/60)) : 3; },
+  gearPower(e){ const g=this.gear.find(x=>x.e===e); return g?g.power:0; },
+  attack(p){ return this.avatarAttack(p.ava) + (p.equippedGear ? this.gearPower(p.equippedGear) : 0); }
+};
+
+/* ---------- APP ---------- */
+const App={
+  cur:null, ex:null, timer:null, lastTick:null, _tt:null, shopCat:'avatar', _clueUsed:false,
+
+  init(){
+    Store.load(); Speech.init(); Sync.init();
+    this.renderProfiles();
+    this.wire();
+    try{ document.getElementById('buildTag').textContent='WordQuest v'+VERSION; }catch(e){}
+    document.addEventListener('pointerdown',()=>Speech.prime(),{once:true});   // unlock audio
+    document.addEventListener('visibilitychange',()=>{ if(document.hidden) this.stopTimer(); else if(this.cur) this.startTimer(); });
+    // pull the latest cloud data (from other devices) once at boot, then refresh what's on screen
+    Sync.pullAll().then(()=>{ this.renderProfiles(); if(document.getElementById('s-dash').classList.contains('active')) this.renderDash(); });
+  },
+  show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); },
+  today(){ return new Date().toISOString().slice(0,10); },
+
+  startTimer(){ this.lastTick=Date.now(); if(this.timer) return; this.timer=setInterval(()=>this.tick(),5000); },
+  tick(){ if(!this.cur||document.hidden) return; const now=Date.now(); const sec=Math.round((now-this.lastTick)/1000); this.lastTick=now;
+    const p=Store.player(this.cur); const d=this.today(); p.time[d]=(p.time[d]||0)+sec; Store.save(); },
+  stopTimer(){ this.tick(); if(this.timer){clearInterval(this.timer); this.timer=null;} },
+
+  touchDay(p){
+    // tracks "played today" for the dashboard's daily history — the streak itself is earned
+    // separately by completing the daily goal (see ensureDaily/trackDailyProgress below)
+    const d=this.today();
+    if(p.lastPlayed!==d){
+      p.lastPlayed=d;
+      if(!p.history.find(h=>h.date===d)) p.history.push({date:d,avg:Engine.avgMastery(p),coins:p.coins});
+      if(p.history.length>30) p.history=p.history.slice(-30);
+    }
+  },
+  yesterday(){ return new Date(Date.now()-864e5).toISOString().slice(0,10); },
+  // reset the daily-goal counter whenever a new day starts
+  ensureDaily(p){
+    const d=this.today();
+    if(!p.daily || p.daily.date!==d){ p.daily={date:d,correct:0,met:false}; }
+  },
+  // called on every correct answer (normal levels + boss battles) to build toward the daily goal
+  trackDailyProgress(p){
+    this.ensureDaily(p);
+    if(p.daily.met) return;
+    p.daily.correct++;
+    if(p.daily.correct>=DAILY_GOAL){
+      p.daily.met=true;
+      // Duolingo-style streak: only grows if yesterday's goal was also met; otherwise restarts at 1
+      p.streakDays = (p.lastGoalDate===this.yesterday()) ? p.streakDays+1 : 1;
+      p.lastGoalDate=p.daily.date;
+      p.coins+=DAILY_BONUS;
+      Store.save();
+      this.celebrateDailyGoal(DAILY_BONUS,p.streakDays);
+    }
+    this.updateGoalUI(p);
+  },
+  // refresh the goal chip + streak flame wherever they're currently shown
+  updateGoalUI(p){
+    const gb=document.getElementById('goalBox'); const sb=document.getElementById('streakBox');
+    if(gb){
+      const shown=Math.min(p.daily.correct,DAILY_GOAL);
+      gb.classList.toggle('done', p.daily.met);
+      gb.innerHTML = p.daily.met ? '✅ יעד יומי הושלם!' : '🎯 <span id="goalN">'+shown+'</span>/<span id="goalMax">'+DAILY_GOAL+'</span>';
+    }
+    if(sb){
+      sb.style.display = p.streakDays>=1 ? 'flex' : 'none';
+      sb.classList.toggle('pending', !p.daily.met);
+      const sn=document.getElementById('streakN'); if(sn) sn.textContent=p.streakDays;
+    }
+  },
+  celebrateDailyGoal(bonus,streak){
+    const el=document.createElement('div'); el.className='goalPopup';
+    el.innerHTML='<div class="gp-fire">🔥</div><div class="gp-title">יעד יומי הושלם!</div>'+
+      '<div class="gp-sub">רצף של '+streak+' ימים ברציפות!</div>'+
+      '<div class="gp-coins">🪙 +'+bonus+'</div>';
+    document.body.appendChild(el);
+    requestAnimationFrame(()=>el.classList.add('show'));
+    setTimeout(()=>{ el.classList.remove('show'); setTimeout(()=>el.remove(),400); },2600);
+  },
+
+  renderProfiles(){
+    const el=document.getElementById('profileList'); el.innerHTML='';
+    Object.keys(Store.data.players).forEach(id=>{
+      const p=Store.player(id);
+      const c=document.createElement('div'); c.className='pcard';
+      c.innerHTML='<div class="ava">'+this.avatarStr(p)+'</div><div class="nm">'+p.he+'</div><div class="cn">🪙 '+p.coins+'</div>';
+      c.onclick=()=>this.enter(id); el.appendChild(c);
+    });
+  },
+  enter(id){
+    this.cur=id; const p=Store.player(id); this.touchDay(p); this.ensureDaily(p); Store.save();
+    document.getElementById('whoAva').textContent=this.avatarStr(p);
+    document.getElementById('whoName').textContent=p.he;
+    this.applyTheme(p.theme||'default');
+    this.startTimer(); this.renderMap(); this.show('s-map');
+  },
+  avatarStr(p){ return p.ava + (p.equippedGear||''); },
+  applyTheme(id){ document.body.style.background=Shop.themeCss(id); document.body.style.backgroundAttachment='fixed'; },
+
+  openShop(){ this.shopCat='avatar'; this.renderShop(); this.show('s-shop'); },
+  renderShop(){
+    const p=Store.player(this.cur);
+    document.getElementById('coinN3').textContent=p.coins;
+    document.getElementById('tabAvatars').classList.toggle('active',this.shopCat==='avatar');
+    document.getElementById('tabGear').classList.toggle('active',this.shopCat==='gear');
+    document.getElementById('tabPotions').classList.toggle('active',this.shopCat==='potion');
+    document.getElementById('tabThemes').classList.toggle('active',this.shopCat==='theme');
+    const grid=document.getElementById('shopGrid'); grid.innerHTML='';
+    const cat=this.shopCat;
+    // potions: consumables with a count, always buyable
+    if(cat==='potion'){
+      Shop.potions.forEach(pt=>{
+        const cnt=p.potions[pt.id]||0;
+        const card=document.createElement('div'); card.className='shopitem';
+        card.innerHTML='<div class="ic">'+pt.e+'</div><div class="nm2">'+pt.name+'</div>'+
+          '<div class="pd" style="font-size:.72rem;color:#64748b;margin-top:2px">'+pt.desc+'</div>'+
+          '<div class="pc" style="font-size:.8rem;color:#0891b2;font-weight:800;margin-top:4px">יש לך: '+cnt+'</div>'+
+          '<div class="pr">🪙 '+pt.price+'</div><button data-act="buy">קנה</button>';
+        card.querySelector('button').onclick=()=>{
+          const r=Shop.buyPotion(p,pt.id,pt.price);
+          if(r==='poor'){ this.toast('אין מספיק מטבעות 🪙',true); return; }
+          Store.save(); this.renderShop();
+        };
+        grid.appendChild(card);
+      });
+      return;
+    }
+    const items = cat==='avatar' ? Shop.avatars.map(a=>({kind:'avatar',key:a.e,price:a.price}))
+      : cat==='gear' ? Shop.gear.map(g=>({kind:'gear',key:g.e,price:g.price,power:g.power}))
+      : Shop.themes.map(t=>({kind:'theme',key:t.id,price:t.price,name:t.name,css:t.css}));
+    items.forEach(it=>{
+      const owned=Shop.owns(p,it.kind,it.key);
+      const equipped = it.kind==='avatar' ? p.ava===it.key
+        : it.kind==='gear' ? p.equippedGear===it.key
+        : (p.theme||'default')===it.key;
+      const card=document.createElement('div'); card.className='shopitem';
+      const visual = it.kind==='theme'
+        ? '<div class="themeprev" style="background:'+it.css+'"></div><div class="nm2">'+it.name+'</div>'
+        : '<div class="ic">'+it.key+'</div>'+
+          (it.kind==='gear' ? '<div class="pw">⚔️ '+it.power+'</div>'
+           : it.kind==='avatar' ? '<div class="pw">⚔️ '+Shop.avatarAttack(it.key)+'</div>' : '');
+      let btnHtml;
+      if(equipped) btnHtml='<button class="equipped" data-act="equip">'+(it.kind==='gear'?'הסר':'מוגדר ✓')+'</button>';
+      else if(owned) btnHtml='<button class="owned" data-act="equip">בחר</button>';
+      else btnHtml='<div class="pr">🪙 '+it.price+'</div><button data-act="buy">קנה</button>';
+      card.innerHTML=visual+btnHtml;
+      const b=card.querySelector('button[data-act]');
+      if(b) b.onclick=()=>{
+        if(b.dataset.act==='buy'){
+          const r=Shop.buy(p,it.kind,it.key,it.price);
+          if(r==='poor'){ this.toast('אין מספיק מטבעות 🪙',true); return; }
+          Store.save(); this.equip(it);
+        } else { this.equip(it); }
+      };
+      grid.appendChild(card);
+    });
+  },
+  equip(it){
+    const p=Store.player(this.cur);
+    if(it.kind==='avatar'){ p.ava=it.key; }
+    else if(it.kind==='gear'){ p.equippedGear = (p.equippedGear===it.key)?'':it.key; }  // toggle
+    else { p.theme=it.key; this.applyTheme(p.theme); }
+    document.getElementById('whoAva').textContent=this.avatarStr(p);
+    document.getElementById('powerN').textContent=Shop.attack(p);
+    Store.save(); this.renderShop();
+  },
+
+  // how many grid columns the winding practice-level path uses per zone (boss gets its own final row)
+  MAP_COLS:3,
+  renderMap(){
+    const p=Store.player(this.cur);
+    document.getElementById('coinN').textContent=p.coins;
+    document.getElementById('powerN').textContent=Shop.attack(p);
+    document.getElementById('whoAva').textContent=this.avatarStr(p);
+    this.ensureDaily(p); this.updateGoalUI(p);
+    const path=document.getElementById('pathEl'); path.innerHTML='';
+    // always show at least 6 zones so the journey looks long; plus a zone beyond current progress
+    const zones=Math.max(6, Math.ceil((p.maxLevel+ZONE_LEN)/ZONE_LEN));
+    const cols=this.MAP_COLS;
+    const practiceRows=Math.ceil((ZONE_LEN-1)/cols);
+    for(let z=1; z<=zones; z++){
+      const bossLv=z*ZONE_LEN, zoneDone=bossLv<p.maxLevel;
+      const zoneEl=document.createElement('div'); zoneEl.className='zone'+(zoneDone?' zonecomplete':'');
+      const zoneUnlocked = p.maxLevel > (z-1)*ZONE_LEN;
+      const head=document.createElement('div'); head.className='zonehead'+(zoneUnlocked?'':' lockedzone');
+      head.innerHTML='<span class="zn">'+(zoneUnlocked?'🗺️':'🔒')+' אזור '+z+'</span><span class="zt">'+this.sectionName(z)+'</span>'+
+        (zoneDone?'<span class="zonedone">✅ הושלם</span>':'');
+      zoneEl.appendChild(head);
+      const inner=document.createElement('div'); inner.className='zonelevels';
+      const svg=document.createElementNS('http://www.w3.org/2000/svg','svg'); svg.setAttribute('class','pathsvg');
+      inner.appendChild(svg);
+      for(let s=1; s<=ZONE_LEN; s++){
+        const lv=(z-1)*ZONE_LEN+s;
+        const boss=(s===ZONE_LEN);
+        const done=lv<p.maxLevel, current=lv===p.maxLevel, locked=lv>p.maxLevel;
+        const n=document.createElement('div');
+        n.className='node '+(done?'done':current?'current':'locked')+(boss?' boss':'');
+        if(boss){
+          n.style.gridRow=(practiceRows+1); n.style.gridColumn='1 / -1';
+          n.innerHTML='<div class="bossband">בוס</div>'+(locked?'🔒':done?'👑':this.bossEmoji(z))+
+            '<div class="lbl">קרב בוס · אזור '+z+'</div>';
+        } else {
+          // boustrophedon (snake): row0 goes left→right, row1 right→left, row2 left→right, ...
+          const i=s-1, row=Math.floor(i/cols), colInRow=i%cols;
+          const col=(row%2===0) ? colInRow : (cols-1-colInRow);
+          n.style.gridRow=(row+1); n.style.gridColumn=(col+1);
+          const stars=p.stars[lv]||0;
+          n.innerHTML=(done?'✓':locked?'🔒':'▶')+
+            (stars?'<div class="stars">'+'⭐'.repeat(stars)+'</div>':'')+
+            '<div class="lbl">שלב '+s+'</div>';
+        }
+        if(!locked) n.onclick=()=>this.goLevel(lv);
+        inner.appendChild(n);
+      }
+      zoneEl.appendChild(inner);
+      path.appendChild(zoneEl);
+    }
+    // draw the winding connector line from real rendered node positions (works for any path shape)
+    requestAnimationFrame(()=>{
+      path.querySelectorAll('.zonelevels').forEach(inner=>{
+        const svg=inner.querySelector('.pathsvg');
+        const rect=inner.getBoundingClientRect();
+        svg.setAttribute('viewBox','0 0 '+rect.width+' '+rect.height);
+        svg.innerHTML='';
+        const nodes=[...inner.querySelectorAll('.node')];
+        const centers=nodes.map(n=>{ const r=n.getBoundingClientRect();
+          return {x:r.left+r.width/2-rect.left, y:r.top+r.height/2-rect.top}; });
+        for(let i=1;i<centers.length;i++){
+          const a=centers[i-1], b=centers[i], isLast=i===centers.length-1;
+          const segDone=nodes[i-1].classList.contains('done');
+          const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+          line.setAttribute('x1',a.x); line.setAttribute('y1',a.y);
+          line.setAttribute('x2',b.x); line.setAttribute('y2',b.y);
+          line.setAttribute('stroke', isLast?'#dc2626':(segDone?'#22c55e':'#334155'));
+          line.setAttribute('stroke-width', isLast?7:5);
+          line.setAttribute('stroke-linecap','round');
+          svg.appendChild(line);
+        }
+      });
+      const cur=path.querySelector('.current'); if(cur) cur.scrollIntoView({block:'center',inline:'center',behavior:'smooth'});
+    });
+  },
+
+  typeLabel(skill,type){ return (TYPE_HE[skill]&&TYPE_HE[skill][type]) || ''; },
+  startLevel(lv){
+    const p=Store.player(this.cur);
+    const qs=Engine.buildLevel(p,lv);
+    this.ex={ lv, qs, i:0, correct:0, startCoins:p.coins, streak:0, gained:0 };
+    const z=Math.ceil(lv/ZONE_LEN);
+    const focus=qs.focus;
+    const focusTxt = focus ? (' · '+SKILL_HE[focus.skill]+': '+this.typeLabel(focus.skill,focus.type)) : '';
+    document.getElementById('exLevelInfo').textContent='אזור '+z+' · שלב '+(((lv-1)%ZONE_LEN)+1)+focusTxt;
+    document.getElementById('coinN2').textContent=p.coins;
+    document.getElementById('testSkipEx').style.display = (this.cur==='tester') ? '' : 'none';
+    this.show('s-ex'); this.renderQuestion();
+  },
+  // TESTER-ONLY: instantly complete the current level as if every remaining question
+  // was answered correctly on the first try — for fast QA of levels/zones/bosses.
+  testSkipLevel(){
+    if(this.cur!=='tester') return;
+    const ex=this.ex; if(!ex) return;
+    ex.correct=ex.qs.length; ex.i=ex.qs.length;
+    this.finishLevel();
+  },
+  testSkipBoss(){
+    if(this.cur!=='tester') return;
+    const bs=this.boss; if(!bs) return;
+    bs.hp=0; this.bossWin();
+  },
+  // shared question painter (used by normal levels AND boss battles)
+  paintQuestion(q, ids, onPick){
+    document.getElementById(ids.prompt).textContent=q.prompt||'';
+    document.getElementById(ids.heb).textContent=q.heb||'';
+    const stage=document.getElementById(ids.stage); stage.innerHTML='';
+    if(q.stageType==='letter'){ const d=document.createElement('div'); d.className='bigq en'; d.textContent=q.stageValue; stage.appendChild(d); Speech.letter(q.say); }
+    else if(q.stageType==='emoji'){ const d=document.createElement('div'); d.className='bigq'; d.textContent=q.stageValue; stage.appendChild(d); Speech.say(q.say); }
+    else if(q.stageType==='word'){ const d=document.createElement('div'); d.className='bigq word en'; d.textContent=q.stageValue; stage.appendChild(d); }
+    else if(q.stageType==='audio'){ const b=document.createElement('button'); b.className='speaker'; b.textContent='🔊'; b.onclick=()=>Speech.say(q.say); stage.appendChild(b); Speech.say(q.say); }
+    else if(q.stageType==='wordmask'){
+      if(q.pic){ const pic=document.createElement('div'); pic.className='bigq'; pic.style.fontSize='3.4rem'; pic.textContent=q.pic; stage.appendChild(pic); }
+      const w=document.createElement('div'); w.className='bigq word en'; w.style.letterSpacing='6px'; w.textContent=q.stageValue; stage.appendChild(w);
+    }
+    if(q.stageType==='letter' || q.stageType==='emoji' || q.stageType==='wordmask'){
+      const rb=document.createElement('button'); rb.className='replay'; rb.textContent='🔊 שמע שוב';
+      rb.onclick=()=>{ q.stageType==='letter'?Speech.letter(q.say):Speech.say(q.say); };
+      stage.appendChild(rb);
+    }
+    // clue button for first-letter (picture) questions — reveals the word, costs coins/damage
+    if(q.skill==='sounds'){
+      const cb=document.createElement('button'); cb.className='clue'; cb.textContent='💡 רמז: הצג את המילה';
+      cb.onclick=()=>{ App._clueUsed=true; Speech.say(q.say);
+        const w=document.createElement('div'); w.className='clueword en'; w.textContent=q.say; stage.appendChild(w); cb.remove(); };
+      stage.appendChild(cb);
+    }
+    const box=document.getElementById(ids.options); box.innerHTML='';
+    if(q.inputType==='text'){
+      box.className='options typebox';
+      const inp=document.createElement('input'); inp.type='text'; inp.className='typeinput en';
+      inp.autocomplete='off'; inp.autocorrect='off'; inp.autocapitalize='off'; inp.spellcheck=false;
+      inp.maxLength=q.maxLen||16; inp.inputMode='text';
+      const btn=document.createElement('button'); btn.className='btn big gold submitbtn'; btn.textContent='✔ בדיקה';
+      const submit=()=>{ const val=inp.value; if(!val || !val.trim()) return; onPick(btn,{label:val,correct:q.check(val),speak:q.say},q); };
+      btn.onclick=submit;
+      inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); submit(); } });
+      box.appendChild(inp); box.appendChild(btn);
+      setTimeout(()=>inp.focus(),60);
+      return;
+    }
+    box.className='options '+(q.options.length<=3?'g2':'g4');
+    q.options.forEach(o=>{
+      const b=document.createElement('button'); b.className='opt '+(o.cls||'')+((q.skill==='letters'||q.skill==='sounds')?' en':'');
+      b.textContent=o.label; b.onclick=()=>onPick(b,o,q); box.appendChild(b);
+    });
+  },
+  renderQuestion(){
+    const ex=this.ex, q=ex.qs[ex.i];
+    ex.qStart=Date.now(); ex.locked=false; ex.qWrong=false; ex.wrongChoices=[]; this._clueUsed=false;
+    document.getElementById('exProg').style.width=(ex.i/ex.qs.length*100)+'%';
+    document.getElementById('exCount').textContent=(ex.i+1)+' / '+ex.qs.length;
+    this.paintQuestion(q,{prompt:'exPrompt',heb:'exHeb',stage:'exStage',options:'exOptions'},(b,o,qq)=>this.answer(b,o,qq));
+  },
+  answer(btn,opt,q){
+    const ex=this.ex; if(ex.locked) return;
+    const p=Store.player(this.cur);
+    if(!opt.correct){
+      // WRONG → second chance: keep trying (no reveal)
+      ex.qWrong=true; ex.streak=0;
+      ex.wrongChoices.push(opt.label);
+      if(q.inputType==='text'){ this.shakeTypeInput('exOptions'); }
+      else { btn.classList.add('wrong'); btn.style.pointerEvents='none'; }
+      this.toast('נסו שוב 🙂',true);
+      return;
+    }
+    // CORRECT (possibly after retries)
+    ex.locked=true;
+    if(q.inputType==='text'){
+      const box=document.getElementById('exOptions');
+      const inp=box.querySelector('.typeinput'); if(inp){ inp.disabled=true; inp.classList.add('correct'); }
+      const sb=box.querySelector('.submitbtn'); if(sb) sb.disabled=true;
+    } else {
+      document.querySelectorAll('#exOptions .opt').forEach(b=>b.style.pointerEvents='none');
+      btn.classList.add('correct');
+    }
+    const firstTry = !ex.qWrong;
+    const fast = firstTry && (Date.now()-ex.qStart)<4000;
+    if(firstTry){ ex.correct++; ex.streak++; } // only first-try counts toward score/streak
+    let coins, bonus='';
+    if(!firstTry){ coins=1; bonus=' (אחרי תיקון)'; }
+    else if(this._clueUsed){ coins=2; bonus=' 💡רמז'; }
+    else {
+      const base=5, fastB=fast?2:0, streakB=ex.streak>=3?2:0;
+      coins=base+fastB+streakB;
+      if(fastB) bonus+=' ⚡מהיר'; if(streakB) bonus+=' 🔥רצף';
+    }
+    p.coins+=coins; ex.gained+=coins;
+    document.getElementById('coinN2').textContent=p.coins;
+    this.flyCoins(btn,coins); this.toast(this.praise()+' +'+coins+' 🪙'+bonus,false);
+    // (no re-speak of the word/letter here — it already played when the question appeared;
+    // repeating it on a correct answer overlapped with the next question's audio and was confusing)
+    // adaptive engine + telemetry: log ONCE per question; a retry counts as "not mastered"
+    Engine.record(p,q,firstTry,fast);
+    Tele.log(q.itemId, firstTry, firstTry?null:ex.wrongChoices[0]);
+    this.trackDailyProgress(p);
+    Store.save();
+    setTimeout(()=>this.nextQuestion(),900);
+  },
+  nextQuestion(){
+    const ex=this.ex; ex.i++;
+    if(ex.i>=ex.qs.length){ this.finishLevel(); return; }
+    this.renderQuestion();
+  },
+  finishLevel(){
+    const ex=this.ex, p=Store.player(this.cur);
+    const pct=ex.correct/ex.qs.length;            // ex.correct = first-try correct answers
+    const stars = pct>=0.9?3 : pct>=0.7?2 : 1;
+    const passed = stars>=2;                        // need >=6/8 first-try to advance
+    p.stars[ex.lv]=Math.max(p.stars[ex.lv]||0, stars);
+    if(passed && ex.lv>=p.maxLevel){ p.maxLevel=ex.lv+1; }
+    const bonus= stars===3?15 : stars===2?8 : 0; p.coins+=bonus; ex.gained+=bonus;
+    const d=this.today(); const h=p.history.find(x=>x.date===d);
+    if(h){ h.avg=Engine.avgMastery(p); h.coins=p.coins; }
+    Store.save();
+    document.getElementById('doneStars').textContent='⭐'.repeat(stars)+'☆'.repeat(3-stars);
+    document.getElementById('doneCoins').textContent=ex.gained||0;
+    document.getElementById('doneEmoji').textContent= stars===3?'🏆':stars===2?'🎉':'💪';
+    document.getElementById('doneTitle').textContent = passed?'כל הכבוד!':'כמעט שם!';
+    const nextUnlocked = p.maxLevel>ex.lv;
+    document.getElementById('nextLevel').style.display = nextUnlocked?'':'none';
+    const need=Math.ceil(0.7*ex.qs.length);
+    document.getElementById('doneMsg').textContent = passed
+      ? (ex.correct+' מתוך '+ex.qs.length+' נכון בפעם הראשונה · שלב '+ex.lv)
+      : (ex.correct+' מתוך '+ex.qs.length+' בפעם הראשונה — צריך '+need+' כדי לפתוח את השלב הבא. נסו שוב! 🔓');
+    this.show('s-done');
+  },
+
+  /* ---------- LEADERBOARD ---------- */
+  stats(p){
+    const lvl=p.maxLevel;                                   // level currently unlocked / on
+    const reached=lvl-1;                                    // levels completed
+    const zone=Math.ceil(lvl/ZONE_LEN);
+    const bosses=Math.floor((lvl-1)/ZONE_LEN);              // bosses beaten
+    const stars=Object.values(p.stars).reduce((a,b)=>a+(b||0),0);
+    const attack=Shop.attack(p);
+    const score=reached*10 + bosses*50 + stars*4;
+    return {lvl,reached,zone,bosses,stars,attack,coins:p.coins,score};
+  },
+  openLeader(){ this.renderLeader(); this.show('s-leader'); },
+  renderLeader(){
+    const rows=Object.keys(Store.data.players).map(id=>({p:Store.player(id),s:this.stats(Store.player(id))}));
+    rows.sort((a,b)=>b.s.score-a.s.score);
+    const maxReached=Math.max(1,...rows.map(r=>r.s.reached));
+    const medals=['🥇','🥈','🥉'];
+    document.getElementById('leaderList').innerHTML=rows.map((r,i)=>{
+      const s=r.s;
+      return '<div class="lb-row'+(i===0?' first':'')+'">'+
+        '<div class="lb-rank">'+(medals[i]||('#'+(i+1)))+'</div>'+
+        '<div class="lb-ava">'+this.avatarStr(r.p)+'</div>'+
+        '<div class="lb-main"><div class="lb-name">'+r.p.he+'</div><div class="lb-chips">'+
+          '<span class="lb-chip">🗺️ אזור '+s.zone+' · שלב '+(((s.lvl-1)%ZONE_LEN)+1)+'</span>'+
+          '<span class="lb-chip">👹 '+s.bosses+' בוסים</span>'+
+          '<span class="lb-chip">⭐ '+s.stars+'</span>'+
+          '<span class="lb-chip">🪙 '+s.coins+'</span>'+
+          '<span class="lb-chip">⚔️ '+s.attack+'</span>'+
+        '</div><div class="lb-bar"><div style="width:'+(s.reached/maxReached*100)+'%"></div></div></div>'+
+      '</div>';
+    }).join('');
+  },
+
+  /* ---------- WORLDS + BOSS BATTLES ---------- */
+  goLevel(lv){ if(lv%ZONE_LEN===0) this.startBoss(lv); else this.startLevel(lv); },
+  bossEmoji(world){ const a=['👾','🐉','👹','🤖','👺','🦖','💀','🐲','👽','🦂']; return a[(world-1)%a.length]; },
+  sectionName(z){ return ['אותיות וצלילים','מילים ראשונות','אוצר מילים','הקשבה והבנה','אלופי המילים','אתגר האלופים'][z-1] || ('אתגר '+z); },
+
+  startBoss(lv){
+    const world=lv/ZONE_LEN;
+    this.boss={ lv, world, use:{}, pool:Engine.bossPool(world) };
+    this.renderPrep(); this.show('s-bossprep');
+  },
+  // shared HP formula so the prep-screen estimate and the real battle never drift apart —
+  // anchored to BOSS_TARGET_HITS correct answers at the player's CURRENT damage, growing per zone.
+  bossHP(world,baseDmg){ return Math.round(BOSS_TARGET_HITS*baseDmg*(1+(world-1)*0.12)); },
+  renderPrep(){
+    const p=Store.player(this.cur), bs=this.boss;
+    document.getElementById('prepBossEmoji').textContent=this.bossEmoji(bs.world);
+    document.getElementById('prepBossTitle').textContent='בוס · אזור '+bs.world+' · '+this.sectionName(bs.world);
+    document.getElementById('prepCoins').textContent=p.coins;
+    document.getElementById('prepPower').textContent=Shop.attack(p);
+    document.getElementById('prepHearts').textContent=3+(bs.use.shield?1:0);
+    const estDmg=5+Shop.attack(p);
+    document.getElementById('prepDmg').textContent='כל תשובה נכונה פוגעת ב‑'+estDmg+' בבוס 💥 (רצף של 3+ תשובות נכונות מוסיף עוד +3!) — דמות וציוד חזקים יותר = פגיעה חזקה יותר!';
+    const estHP=this.bossHP(bs.world,estDmg);
+    document.getElementById('prepQEst').textContent='🎯 לבוס יש '+estHP+' נקודות חיים — בערך '+Math.ceil(estHP/estDmg)+' תשובות נכונות עד ניצחון (פחות אם תצברו רצף או תשתמשו בחיזוקים) · 3 טעויות = הפסד';
+    // show which skill/type pairs THIS boss draws from, so it's clear it only tests what this area covered
+    const pbox=document.getElementById('prepPool'); pbox.innerHTML='';
+    const seen=new Set();
+    bs.pool.thisZone.forEach(f=>{ const label=SKILL_HE[f.skill]; if(!seen.has(label)){ seen.add(label);
+      const c=document.createElement('span'); c.className='poolChip'; c.textContent=label; pbox.appendChild(c); } });
+    if(bs.pool.prior.length){ const c=document.createElement('span'); c.className='poolChip'; c.textContent='+ קצת חזרה מאזורים קודמים'; pbox.appendChild(c); }
+    const box=document.getElementById('prepPotions'); box.innerHTML='';
+    Shop.potions.forEach(pt=>{
+      const cnt=p.potions[pt.id]||0;
+      const card=document.createElement('div'); card.className='potioncard'+(bs.use[pt.id]?' sel':'');
+      card.innerHTML='<div class="pe">'+pt.e+'</div><div class="pn">'+pt.name+'</div><div class="pd">'+pt.desc+'</div>'+
+        '<div class="pc">יש לך: '+cnt+'</div><button class="pbuy">🪙 '+pt.price+' · קנה</button>';
+      // click card body = select/deselect (only if owned)
+      card.onclick=()=>{ if((p.potions[pt.id]||0)>0){ bs.use[pt.id]=!bs.use[pt.id]; this.renderPrep(); }
+        else { this.toast('אין לך את החיזוק הזה — אפשר לקנות 👇',true); } };
+      // buy button = purchase one right here
+      card.querySelector('.pbuy').onclick=(e)=>{ e.stopPropagation();
+        const r=Shop.buyPotion(p,pt.id,pt.price);
+        if(r==='poor'){ this.toast('אין מספיק מטבעות 🪙',true); return; }
+        Store.save(); this.renderPrep(); };
+      box.appendChild(card);
+    });
+  },
+  beginBattle(){
+    const p=Store.player(this.cur), bs=this.boss;
+    // consume the potions the player chose to use
+    ['dmg','shield','crit'].forEach(id=>{ if(bs.use[id]){ if((p.potions[id]||0)>0) p.potions[id]--; else bs.use[id]=false; } });
+    bs.baseDmg = 5 + Shop.attack(p);    // your character + equipped weapon = damage per correct answer
+    bs.bossMaxHP = this.bossHP(bs.world, bs.baseDmg);   // ~BOSS_TARGET_HITS hits at current strength, tougher each zone
+    bs.hp = bs.bossMaxHP;
+    bs.maxHearts = 3 + (bs.use.shield?1:0);
+    bs.hearts = bs.maxHearts;
+    bs.dbl = !!bs.use.dmg; bs.crit = !!bs.use.crit;
+    bs.first = true; bs.streak=0; bs.correct=0; bs.total=0; bs.lastId=null;
+    Store.save();
+    document.getElementById('bossEmoji').textContent=this.bossEmoji(bs.world);
+    document.getElementById('bossPlayerAva').textContent=this.avatarStr(p);
+    document.getElementById('bossLevelInfo').textContent='👹 קרב בוס · אזור '+bs.world+' · '+this.sectionName(bs.world);
+    document.getElementById('testSkipBoss').style.display = (this.cur==='tester') ? '' : 'none';
+    document.getElementById('bossQNum').textContent='1';
+    document.getElementById('bossOkN').textContent='0';
+    document.getElementById('bossBadN').textContent='0';
+    const combo=document.getElementById('bossCombo'); combo.textContent='🔥 0'; combo.classList.remove('hot');
+    this.renderActivePotions();
+    this.show('s-boss'); this.nextBossQuestion();
+  },
+  // shows which potions are in effect THIS battle — so a bought power-up is actually visible, not silent math
+  renderActivePotions(){
+    const bs=this.boss; const box=document.getElementById('bossActivePotions'); if(!box) return;
+    box.innerHTML='';
+    if(bs.dbl){ const c=document.createElement('span'); c.className='potionActiveChip'; c.textContent='⚔️ פגיעה כפולה פעילה'; box.appendChild(c); }
+    if(bs.crit && bs.first){ const c=document.createElement('span'); c.className='potionActiveChip crit'; c.textContent='🎯 מכה קריטית מוכנה!'; box.appendChild(c); }
+    if(bs.use.shield){ const c=document.createElement('span'); c.className='potionActiveChip shield'; c.textContent='🛡️ לב נוסף פעיל'; box.appendChild(c); }
+  },
+  // damage the NEXT correct answer would deal, given current streak/potions — kept in sync with bossAnswer's math
+  previewDmg(){
+    const bs=this.boss;
+    const nextStreak=bs.streak+1;
+    let d=bs.baseDmg + (nextStreak>=3?3:0);
+    if(bs.dbl) d*=2;
+    if(bs.crit && bs.first) d+=40;
+    return d;
+  },
+  updateBossHUD(){
+    const bs=this.boss;
+    document.getElementById('bossHP').style.width=(Math.max(0,bs.hp)/bs.bossMaxHP*100)+'%';
+    document.getElementById('bossHPLabel').textContent=Math.max(0,bs.hp)+' / '+bs.bossMaxHP;
+    document.getElementById('bossNextDmg').textContent='⚔️ -'+this.previewDmg();
+    document.getElementById('bossHearts').textContent='❤️'.repeat(bs.hearts)+'🖤'.repeat(Math.max(0,bs.maxHearts-bs.hearts));
+    document.getElementById('bossOkN').textContent=bs.correct;
+    document.getElementById('bossBadN').textContent=bs.total-bs.correct;
+    const combo=document.getElementById('bossCombo');
+    combo.textContent='🔥 '+bs.streak;
+    combo.classList.toggle('hot', bs.streak>=3);
+  },
+  // pick the next boss question from THIS zone's own practice pool (with an occasional
+  // review question from earlier zones) — never a skill/type this area never actually taught.
+  nextBossQuestion(){
+    const bs=this.boss, p=Store.player(this.cur);
+    bs.locked=false; this._clueUsed=false;
+    document.getElementById('bossQNum').textContent=bs.total+1;
+    const useReview = bs.pool.prior.length>0 && Math.random()<0.2;
+    const src = useReview ? bs.pool.prior : bs.pool.thisZone;
+    const focus = src[Math.floor(Math.random()*src.length)];
+    const diff=Math.min(5, Engine.pickDiff(p,focus.skill,bs.lv)+1);   // bosses ask harder questions
+    let q,g=0; do{ q=Engine.makeQuestion(p,focus.skill,diff,null,focus.type); }while(q.itemId===bs.lastId && g++<10);
+    bs.lastId=q.itemId; bs.q=q;
+    this.updateBossHUD();
+    this.paintQuestion(q,{prompt:'bossPrompt',heb:'bossHeb',stage:'bossStage',options:'bossOptions'},(b,o,qq)=>this.bossAnswer(b,o,qq));
+  },
+  bossAnswer(btn,opt,q){
+    const bs=this.boss; if(bs.locked) return; bs.locked=true;
+    const p=Store.player(this.cur);
+    document.querySelectorAll('#bossOptions .opt').forEach(b=>b.style.pointerEvents='none');
+    bs.total++;
+    if(opt.correct){
+      if(q.inputType==='text'){
+        const box=document.getElementById('bossOptions');
+        const inp=box.querySelector('.typeinput'); if(inp){ inp.disabled=true; inp.classList.add('correct'); }
+        const sb=box.querySelector('.submitbtn'); if(sb) sb.disabled=true;
+      } else btn.classList.add('correct');
+      bs.correct++; bs.streak++;
+      let dmg=bs.baseDmg + (bs.streak>=3?3:0);
+      if(this._clueUsed) dmg=Math.ceil(dmg/2);   // clue = weaker hit
+      if(bs.dbl) dmg*=2;
+      const wasCrit = bs.crit && bs.first;
+      if(wasCrit){ dmg+=40; }
+      bs.first=false;
+      bs.hp=Math.max(0,bs.hp-dmg);
+      this.dmgFloat(btn,'-'+dmg);
+      const be=document.getElementById('bossEmoji'); be.classList.add('hit'); setTimeout(()=>be.classList.remove('hit'),300);
+      // (no re-speak on correct — it already played when the question appeared)
+      this.trackDailyProgress(p); Store.save();
+      this.updateBossHUD();
+      if(wasCrit){ this.toast('🎯💥 מכה קריטית! +40 בונוס',false); this.renderActivePotions(); }
+      else if(bs.streak===3) this.toast('🔥 קומבו! פגיעה כפולה',false);
+      if(bs.hp<=0){ setTimeout(()=>this.bossWin(),700); return; }
+    } else {
+      if(q.inputType==='text'){
+        const box=document.getElementById('bossOptions');
+        const inp=box.querySelector('.typeinput'); if(inp){ inp.disabled=true; inp.classList.add('wrong'); }
+        const sb=box.querySelector('.submitbtn'); if(sb) sb.disabled=true;
+        const reveal=document.createElement('div'); reveal.className='revealAnswer en'; reveal.textContent='התשובה: '+q.answer;
+        box.appendChild(reveal);
+      } else {
+        btn.classList.add('wrong');
+        const els=document.querySelectorAll('#bossOptions .opt');
+        q.options.forEach((o,i)=>{ if(o.correct&&els[i]) els[i].classList.add('correct'); });
+      }
+      bs.streak=0; bs.hearts--;
+      this.updateBossHUD();
+      this.toast('הבוס תקף! 💔',true);
+      const arena=document.getElementById('s-boss'); arena.classList.add('shake'); setTimeout(()=>arena.classList.remove('shake'),400);
+      if(bs.hearts<=0){ setTimeout(()=>this.bossLose(),1200); return; }
+    }
+    setTimeout(()=>this.nextBossQuestion(),opt.correct?850:1300);
+  },
+  bossWin(){
+    const bs=this.boss, p=Store.player(this.cur);
+    if(bs.lv>=p.maxLevel) p.maxLevel=bs.lv+1;   // unlock next world
+    const reward=40+bs.world*20; p.coins+=reward;
+    Store.save();
+    document.getElementById('bossResEmoji').textContent='🏆';
+    document.getElementById('bossResTitle').textContent='ניצחת את הבוס!';
+    document.getElementById('bossResMsg').textContent='אזור '+bs.world+' הושלם! אזור '+(bs.world+1)+' נפתח 🔓 · ✅ '+bs.correct+'/'+bs.total+' תשובות נכונות';
+    document.getElementById('bossResCoins').textContent=reward;
+    document.getElementById('bossNext').style.display='';
+    this.show('s-bossresult');
+  },
+  bossLose(){
+    const bs=this.boss;
+    document.getElementById('bossResEmoji').textContent='💀';
+    document.getElementById('bossResTitle').textContent='הבוס ניצח הפעם';
+    document.getElementById('bossResMsg').textContent='תתאמנו עוד, קנו ציוד ושיקויים בחנות — ונסו שוב! · ✅ '+bs.correct+'/'+bs.total+' תשובות נכונות';
+    document.getElementById('bossResCoins').textContent=0;
+    document.getElementById('bossNext').style.display='none';
+    this.show('s-bossresult');
+  },
+  shakeTypeInput(containerId){
+    const box=document.getElementById(containerId); const inp=box&&box.querySelector('.typeinput');
+    if(!inp) return;
+    inp.classList.remove('shakeerr'); void inp.offsetWidth; inp.classList.add('shakeerr');
+    inp.value=''; setTimeout(()=>inp.classList.remove('shakeerr'),350); inp.focus();
+  },
+  dmgFloat(btn,text){ const r=btn.getBoundingClientRect(); const f=document.createElement('div'); f.className='dmgfloat'; f.textContent=text; f.style.left=(r.left+r.width/2)+'px'; f.style.top=r.top+'px'; document.body.appendChild(f); setTimeout(()=>f.remove(),1000); },
+
+  praise(){ const a=['מעולה!','כל הכבוד!','נכון!','אלוף!','מדהים!','יופי!','וואו!']; return a[Math.floor(Math.random()*a.length)]; },
+  toast(msg,bad){ const t=document.getElementById('toast'); t.textContent=msg; t.className='toast show'+(bad?' bad':''); clearTimeout(this._tt); this._tt=setTimeout(()=>{t.className='toast'+(bad?' bad':'');},900); },
+  flyCoins(btn,amount){ const r=btn.getBoundingClientRect(); const f=document.createElement('div'); f.className='coinfly'; f.textContent='+'+(amount||0)+' 🪙'; f.style.left=(r.left+r.width/2)+'px'; f.style.top=r.top+'px'; document.body.appendChild(f); setTimeout(()=>f.remove(),1000); },
+
+  wire(){
+    document.getElementById('parentGear').onclick=()=>{ document.getElementById('pinInput').value=''; this.show('s-pin'); };
+    document.getElementById('switchBtn').onclick=()=>{ this.stopTimer(); this.cur=null; this.applyTheme('default'); this.renderProfiles(); this.show('s-profile'); };
+    document.getElementById('shopBtn').onclick=()=>this.openShop();
+    document.getElementById('leaderBtn').onclick=()=>this.openLeader();
+    document.getElementById('leaderBtnP').onclick=()=>this.openLeader();
+    document.getElementById('leaderBack').onclick=()=>{ if(this.cur){ this.renderMap(); this.show('s-map'); } else { this.renderProfiles(); this.show('s-profile'); } };
+    document.getElementById('shopBack').onclick=()=>{ this.renderMap(); this.show('s-map'); };
+    document.getElementById('tabAvatars').onclick=()=>{ this.shopCat='avatar'; this.renderShop(); };
+    document.getElementById('tabGear').onclick=()=>{ this.shopCat='gear'; this.renderShop(); };
+    document.getElementById('tabPotions').onclick=()=>{ this.shopCat='potion'; this.renderShop(); };
+    document.getElementById('tabThemes').onclick=()=>{ this.shopCat='theme'; this.renderShop(); };
+    document.getElementById('quitEx').onclick=()=>{ this.renderMap(); this.show('s-map'); };
+    document.getElementById('testSkipEx').onclick=()=>this.testSkipLevel();
+    document.getElementById('testSkipBoss').onclick=()=>this.testSkipBoss();
+    document.getElementById('toMap').onclick=()=>{ this.renderMap(); this.show('s-map'); };
+    document.getElementById('nextLevel').onclick=()=>{ this.goLevel(this.ex.lv+1); };
+    document.getElementById('replayLevel').onclick=()=>{ this.startLevel(this.ex.lv); };
+    // boss battle buttons
+    document.getElementById('bossPrepBack').onclick=()=>{ this.renderMap(); this.show('s-map'); };
+    document.getElementById('startBattle').onclick=()=>this.beginBattle();
+    document.getElementById('prepShop').onclick=()=>this.openShop();
+    document.getElementById('bossQuit').onclick=()=>{ this.renderMap(); this.show('s-map'); };
+    document.getElementById('bossNext').onclick=()=>{ this.goLevel(this.boss.lv+1); };
+    document.getElementById('bossRetry').onclick=()=>this.startBoss(this.boss.lv);
+    document.getElementById('bossToMap').onclick=()=>{ this.renderMap(); this.show('s-map'); };
+    document.querySelectorAll('[data-back]').forEach(b=>b.onclick=()=>this.show(b.dataset.back));
+    document.getElementById('pinOk').onclick=()=>this.checkPin();
+    document.getElementById('pinInput').addEventListener('keydown',e=>{ if(e.key==='Enter') this.checkPin(); });
+    document.getElementById('savePin').onclick=()=>{ const v=document.getElementById('newPin').value.trim(); if(/^\d{4}$/.test(v)){ Store.data.settings.pin=v; Store.save(); alert('הקוד עודכן'); } else alert('יש להזין 4 ספרות'); };
+    document.getElementById('exportData').onclick=()=>this.exportData();
+    document.getElementById('resetKid').onclick=()=>this.resetKid();
+    document.getElementById('saveFamilyCode').onclick=()=>{
+      const v=document.getElementById('familyCodeInput').value.trim();
+      if(!v){ alert('נא להזין קוד משפחה'); return; }
+      Sync.setCode(v);
+      Sync.pullAll().then(()=>{ Sync.pushAll(); this.renderDash(); this.renderProfiles(); });
+    };
+    document.getElementById('syncNow').onclick=()=>{ Sync.pushAll().then(()=>Sync.pullAll()).then(()=>{ this.renderDash(); this.renderProfiles(); }); };
+  },
+  checkPin(){ const v=document.getElementById('pinInput').value; if(v===Store.data.settings.pin){ document.getElementById('pinHint').textContent='קוד ברירת מחדל: 1234'; this.openDash(); } else { document.getElementById('pinHint').textContent='קוד שגוי, נסו שוב'; } },
+
+  dashKid:'aviv',
+  openDash(){
+    this.dashKid=this.cur||'aviv';
+    document.getElementById('familyCodeInput').value=Sync.code();
+    this.renderDash();
+    this.show('s-dash');
+    Sync.pullAll().then(()=>this.renderDash());   // parent may be checking from a device the boys don't use — grab the latest first
+  },
+  renderDash(){
+    Sync.renderStatus();
+    const tabs=document.getElementById('kidTabs'); tabs.innerHTML='';
+    Object.keys(Store.data.players).forEach(id=>{
+      const p=Store.player(id); const b=document.createElement('button');
+      b.className='kid-tab'+(id===this.dashKid?' active':''); b.textContent=p.ava+' '+p.he;
+      b.onclick=()=>{ this.dashKid=id; this.renderDash(); }; tabs.appendChild(b);
+    });
+    const p=Store.player(this.dashKid);
+    const days=[]; for(let i=13;i>=0;i--){ days.push(new Date(Date.now()-i*864e5).toISOString().slice(0,10)); }
+    const mins=days.map(d=>Math.round((p.time[d]||0)/60));
+    const maxM=Math.max(5,...mins);
+    document.getElementById('timeBars').innerHTML=days.map((d,i)=>'<div class="bar" style="height:'+(mins[i]/maxM*100)+'%"><b>'+(mins[i]||'')+'</b><span>'+d.slice(5)+'</span></div>').join('');
+    const totalMin=mins.reduce((a,b)=>a+b,0);
+    document.getElementById('timeSummary').textContent='סה"כ ב‑14 הימים האחרונים: '+totalMin+' דקות · היום: '+Math.round((p.time[this.today()]||0)/60)+' דקות';
+    document.getElementById('skillBars').innerHTML=Object.keys(p.ability).map(s=>{
+      const m=Engine.masteryPct(p,s);
+      return '<div class="skill"><div class="lab"><span>'+SKILL_HE[s]+'</span><span>'+m+'%</span></div>'+
+        '<div class="track"><div style="width:'+m+'%;background:'+SKILL_COLOR[s]+'"></div></div></div>';
+    }).join('') + '<p class="hint">שלב נוכחי: '+p.maxLevel+' · ממוצע כולל: '+Engine.avgMastery(p)+'%</p>';
+    const hist=p.history.slice(-14);
+    if(hist.length){
+      document.getElementById('histBars').innerHTML=hist.map(h=>'<div class="bar" style="height:'+(h.avg)+'%;background:linear-gradient(180deg,#4ade80,#22c55e)"><b>'+h.avg+'</b><span>'+h.date.slice(5)+'</span></div>').join('');
+    } else document.getElementById('histBars').innerHTML='<p class="hint">עדיין אין מספיק נתונים — יופיע אחרי כמה ימי משחק.</p>';
+    this.renderTele();
+  },
+  renderTele(){
+    const items=Store.data.telemetry.items; const rows=[];
+    Object.keys(items).forEach(id=>{ const it=items[id]; if(it.shown<3) return;
+      const acc=it.correct/it.shown;
+      let commonWrong=null,cw=0; Object.keys(it.wrong).forEach(k=>{ if(it.wrong[k]>cw){cw=it.wrong[k];commonWrong=k;} });
+      rows.push({id,acc,shown:it.shown,commonWrong});
+    });
+    rows.sort((a,b)=>a.acc-b.acc);
+    const label=(id)=>{ const t=id[0], v=id.slice(2);
+      return (t==='L'?'אות '+v : t==='S'?'צליל פתיחה: '+v : t==='W'?'מילה: '+v : 'הקשבה: '+v); };
+    const el=document.getElementById('teleList');
+    if(!rows.length){ el.innerHTML='<p class="hint">עדיין נאספים נתונים. שחקו קצת ותחזרו לכאן.</p>'; return; }
+    el.innerHTML=rows.slice(0,10).map(r=>{
+      const pct=Math.round(r.acc*100);
+      const pill = r.acc<0.4?'<span class="pill hard">קשה מדי</span>' : r.acc>0.95?'<span class="pill easy">קל מדי</span>' : '';
+      const cw = (r.commonWrong && r.acc<0.7)?' · טעות נפוצה: <span class="en">'+r.commonWrong+'</span>':'';
+      return '<div class="tele-item"><span><span class="en">'+label(r.id)+'</span> <span class="muted">('+pct+'% · '+r.shown+' פעמים)'+cw+'</span></span> '+pill+'</div>';
+    }).join('');
+  },
+
+  exportData(){ const blob=new Blob([JSON.stringify(Store.data,null,2)],{type:'application/json'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='wordquest-backup.json'; a.click(); },
+  resetKid(){ const p=Store.player(this.dashKid); if(!confirm('לאפס את כל ההתקדמות של '+p.he+'?')) return;
+    Store.data.players[this.dashKid]=Store.freshPlayer(p.en,p.he,p.ava); Store.save(); this.renderDash(); }
+};
+
+window.addEventListener('load',()=>App.init());
+</script>
+</body>
+</html>
