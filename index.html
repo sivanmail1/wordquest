@@ -578,7 +578,7 @@
 <script>
 "use strict";
 /* Version: bump the minor (2.0 -> 2.1) for each change; major (-> 3.0) for a big new phase */
-const VERSION='5.6';
+const VERSION='5.7';
 /* ---- CLOUD SYNC CONFIG ----
    Both are safe to leave in this file — the anon/publishable key is meant to be
    public; real protection comes from the per-family "sync code" each device enters. */
@@ -886,7 +886,9 @@ const WORDS=[
   {w:'bag',e:'🎒',d:1},{w:'boot',e:'👢',d:2},{w:'glove',e:'🧤',d:3},{w:'crown',e:'👑',d:3},
   {w:'wave',e:'🌊',d:2},{w:'volcano',e:'🌋',d:4},{w:'island',e:'🏝️',d:3},{w:'earth',e:'🌍',d:3},
   {w:'cactus',e:'🌵',d:3},{w:'basketball',e:'🏀',d:5},{w:'tennis',e:'🎾',d:3},{w:'medal',e:'🥇',d:3},
-  {w:'robot',e:'🤖',d:3},{w:'ghost',e:'👻',d:3},{w:'crystal',e:'💎',d:4}
+  {w:'robot',e:'🤖',d:3},{w:'ghost',e:'👻',d:3},{w:'crystal',e:'💎',d:4},
+  // --- added v5.7: a few extra simple D/F/S words so World 3's pool reaches 30+ words ---
+  {w:'doll',e:'🪆',d:2},{w:'fan',e:'🪭',d:1},{w:'soap',e:'🧼',d:2}
 ];
 
 // two-letter blends (digraphs) that make one sound — used by the letters "typeDigraph" question type
@@ -900,14 +902,19 @@ const DIGRAPHS=[
 
 // Worlds 2, 3 and 4 are a deliberately gradual on-ramp from letters into reading/typing whole
 // words, and each one is themed around a small set of target letters so the vocabulary stays
-// simple and focused (v5.6): World 2 = B/C, World 3 = D/F/S, World 4 = H/M/T/L/K. Every question
-// in one of these worlds — sounds AND words skill alike — draws only from that world's own pool,
-// so kids never meet a word outside the letters/difficulty that world is built around (this fixed
-// a v5.5 bug where World 2 level 5 could surface a hard word like "helicopter").
+// focused (v5.6) while still being large enough not to get repetitive (v5.7 — each pool is now
+// 30+ words, with 3 harder/longer words per world thrown in as an occasional stretch): World 2 =
+// B/C, World 3 = D/F/S, World 4 = H/M/T/L/K. Every question in one of these worlds — sounds AND
+// words skill alike — draws only from that world's own pool, so kids never meet a word outside
+// the letters that world is built around (this fixed a v5.5 bug where World 2 level 5 could
+// surface a hard word like "helicopter").
 const WORLD_WORDS = {
-  2: WORDS.filter(w=>['cat','car','cup','cow','cake','corn','bear','bird','ball','boat','bee','bed','bag','bus'].includes(w.w)),
-  3: WORDS.filter(w=>['dog','duck','door','drum','fox','frog','fish','fire','sun','star','snow','sock','shoe','ship'].includes(w.w)),
-  4: WORDS.filter(w=>['hen','hat','hand','milk','moon','tree','taxi','lion','leaf','lamp','key','kite'].includes(w.w))
+  // World 2 — B & C (31 words: 28 simple/moderate + 3 harder: butterfly, basketball, crystal)
+  2: WORDS.filter(w=>['cat','cow','car','cup','cake','corn','cheese','cookie','carrot','clock','camel','candy','candle','camera','crayon','crystal','bee','bus','bag','bird','bear','ball','boat','bell','bike','boot','burger','banana','bread','butterfly','basketball'].includes(w.w)),
+  // World 3 — D, F & S (30 words: 27 simple/moderate + 3 harder: dolphin, sandwich, scissors)
+  3: WORDS.filter(w=>['dog','duck','door','drum','donut','dress','doll','fox','frog','fish','fire','flower','fries','fan','sun','star','snow','sock','shoe','ship','snake','sheep','shark','spider','snail','shirt','soap','dolphin','sandwich','scissors'].includes(w.w)),
+  // World 4 — H, M, T, L & K (31 words: 28 simple/moderate + 3 harder: helicopter, mountain, tractor)
+  4: WORDS.filter(w=>['hen','horse','house','hat','hand','mouse','monkey','milk','moon','melon','medal','tiger','turtle','tree','train','tomato','teddy','taxi','truck','tooth','tennis','lion','leaf','lemon','lamp','koala','key','kite','helicopter','mountain','tractor'].includes(w.w))
 };
 // shared explicit curriculum for the 9 practice levels of Worlds 2, 3 and 4 (overrides the generic
 // level→(skill,type) cycling in Engine.levelFocus for those zones) — see the v5.5/v5.6 changelog
