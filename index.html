@@ -101,11 +101,22 @@
   .replay{background:#fff;color:#6d28d9;border:none;border-radius:999px;padding:9px 18px;font-size:.95rem;
     font-weight:800;cursor:pointer;margin:14px auto 0;display:block;box-shadow:0 4px 0 rgba(0,0,0,.12)}
   .replay:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(0,0,0,.12)}
+  .replay.slow{background:#fef3c7;color:#92400e;margin-top:8px}
   .clue{background:#fff7ed;color:#c2410c;border:none;border-radius:999px;padding:9px 18px;font-size:.95rem;
     font-weight:800;cursor:pointer;margin:12px auto 0;display:block;box-shadow:0 4px 0 rgba(0,0,0,.12)}
   .clue:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(0,0,0,.12)}
   .clueword{margin-top:12px;text-align:center;font-size:2.4rem;font-weight:900;color:#fff;
     background:rgba(0,0,0,.18);border-radius:16px;padding:6px 20px;display:inline-block}
+
+  /* report-a-bug — floating button, visible on every screen */
+  .bugbtn{position:fixed;bottom:14px;left:14px;z-index:200;width:50px;height:50px;border-radius:50%;
+    background:#dc2626;color:#fff;border:3px solid #7f1d1d;font-size:1.4rem;box-shadow:var(--shadow);cursor:pointer}
+  .bugbtn:active{transform:scale(.92)}
+  .bugmodal{position:fixed;inset:0;background:rgba(15,23,42,.65);z-index:300;display:none;align-items:center;justify-content:center;padding:20px}
+  .bugmodal.show{display:flex}
+  .bugbox{background:#fff;color:#1e293b;border-radius:20px;padding:22px;max-width:420px;width:100%;box-shadow:var(--shadow);text-align:center}
+  .bugbox textarea{width:100%;border-radius:12px;border:2px solid #cbd5e1;padding:10px;font-size:1.05rem;
+    font-family:inherit;resize:vertical;color:#1e293b}
   .options{display:grid;gap:14px;margin-top:auto;padding-top:16px}
   .options.g2{grid-template-columns:1fr 1fr}
   .options.g4{grid-template-columns:1fr 1fr}
@@ -351,8 +362,8 @@
     <button class="btn ghost backbtn" id="bossPrepBack">‹ חזרה</button>
     <div style="margin:auto;text-align:center;max-width:540px;width:100%">
       <div class="bossmon" id="prepBossEmoji">👾</div>
-      <h1 id="prepBossTitle">בוס · אזור 1</h1>
-      <p class="sub">נצחו את הבוס כדי לפתוח את האזור הבא!</p>
+      <h1 id="prepBossTitle">בוס · עולם 1</h1>
+      <p class="sub">נצחו את הבוס כדי לפתוח את העולם הבא!</p>
       <div class="row" style="justify-content:center;gap:10px;margin-bottom:16px">
         <div class="coins">🪙 <span id="prepCoins">0</span></div>
         <div class="power">⚔️ <span id="prepPower">0</span></div>
@@ -507,6 +518,16 @@
       </div>
 
       <div class="card">
+        <h3>🐞 באגים שדווחו</h3>
+        <div id="bugList"></div>
+        <p class="hint">כל דיווח כולל את השאלה/רמה המדויקת שהייתה על המסך כשלחצו על הכפתור — נוח לעבור עליהם בשבתות תיקון באגים.</p>
+        <div style="margin-top:10px">
+          <button class="btn ghost" id="exportBugs">📤 ייצוא באגים</button>
+          <button class="btn ghost" id="clearBugs" style="margin-inline-start:10px">🗑️ נקה רשימה</button>
+        </div>
+      </div>
+
+      <div class="card">
         <h3>⚙️ הגדרות</h3>
         <div class="skill">
           <label class="lab">שינוי קוד הורים</label>
@@ -529,6 +550,7 @@
         </div>
         <p class="hint" id="syncStatus" style="margin-top:8px"></p>
         <p class="hint">הזינו את אותו קוד בכל מכשיר (טלפון של אביב, טלפון של שחר, המחשב שלכם) כדי שכל ההתקדמות תופיע בכל מקום ובלוח ההורים הזה — גם מרחוק. הקוד הוא כמו סיסמה משפחתית פשוטה, לא צריך אימייל או הרשמה בכל מכשיר.</p>
+        <p class="hint"><b>איך הסנכרון עובד:</b> בזמן משחק, המכשיר של הילד שולח עדכון לענן כל כמה שניות אוטומטית — אין צורך "לשמור" באופן ידני. לוח ההורים הזה גם מושך נתונים חדשים אוטומטית כל 15 שניות כל עוד הוא פתוח, ובכל פתיחה שלו. אם אתם רוצים לוודא שיש לכם את הרגע האחרון ממש עכשיו, לחצו "🔄 סנכרון עכשיו". שימו לב לזמן ליד "עודכן לאחרונה" למעלה — זה אומר כמה טרי המידע שאתם רואים.</p>
       </div>
     </div>
   </section>
@@ -537,11 +559,26 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- REPORT A BUG — always on screen, any time, for the kids to flag something that felt wrong -->
+<button id="bugBtn" class="bugbtn" title="דיווח על באג">🐞</button>
+<div id="bugModal" class="bugmodal">
+  <div class="bugbox">
+    <h3 style="margin:0 0 4px">🐞 דיווח על באג</h3>
+    <p class="hint" style="margin:0 0 10px">מה קרה? למשל: "לא שמעתי טוב", "התמונה מוזרה", "המשחק נתקע"</p>
+    <textarea id="bugText" rows="4" placeholder="ספרו לנו מה קרה..."></textarea>
+    <div class="row" style="justify-content:center;margin-top:14px;gap:10px" id="bugActions">
+      <button class="btn big gold" id="bugSend">שלח דיווח</button>
+      <button class="btn ghost" id="bugCancel">ביטול</button>
+    </div>
+    <p class="hint" id="bugSentMsg" style="display:none;color:#16a34a;font-weight:800;margin-top:10px">תודה! הבאג נרשם 🐞</p>
+  </div>
+</div>
+
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <script>
 "use strict";
 /* Version: bump the minor (2.0 -> 2.1) for each change; major (-> 3.0) for a big new phase */
-const VERSION='5.1';
+const VERSION='5.6';
 /* ---- CLOUD SYNC CONFIG ----
    Both are safe to leave in this file — the anon/publishable key is meant to be
    public; real protection comes from the per-family "sync code" each device enters. */
@@ -567,6 +604,8 @@ const Store = {
     if(!this.data) this.data = this.fresh();
     // migration: cloud-sync timestamp (used to decide which device's save is newer)
     if(this.data.updatedAt===undefined) this.data.updatedAt=0;
+    // migration: bug reports list for older saves
+    if(!this.data.bugs) this.data.bugs=[];
     // migration: make sure the tester profile exists even on older saves
     if(!this.data.players.tester) this.data.players.tester = this.freshPlayer('Tester','בודק (הורה)','🧪');
     // migration: shop fields for older saves
@@ -579,6 +618,7 @@ const Store = {
       if(!pl.potions) pl.potions={dmg:0,shield:0,crit:0};
       if(!pl.daily) pl.daily={date:null,correct:0,met:false};
       if(pl.lastGoalDate===undefined) pl.lastGoalDate=null;
+      if(pl.updatedAt===undefined) pl.updatedAt=0;
     });
     return this.data;
   },
@@ -591,11 +631,13 @@ const Store = {
         shahar:this.freshPlayer('Shahar','שחר','🦖'),
         tester:this.freshPlayer('Tester','בודק (הורה)','🤖')
       },
-      telemetry:{ items:{} }   // itemId -> {shown,correct,wrong:{answer:count}}
+      telemetry:{ items:{} },  // itemId -> {shown,correct,wrong:{answer:count}}
+      bugs:[]                  // kid-reported bugs: {id,ts,player,playerName,screen,level,question,note}
     };
   },
   freshPlayer(en,he,ava){
-    return { en, he, ava, coins:0, streakDays:0, lastPlayed:null,
+    return { en, he, ava, coins:0, streakDays:0, lastPlayed:null, updatedAt:0, // per-player timestamp, used for cross-device merge
+
       level:1, maxLevel:1, stars:{},              // stars[level]=1..3
       ability:{ letters:0, sounds:0, words:0, listening:0 },
       review:[],                                   // spaced-repetition queue
@@ -607,8 +649,12 @@ const Store = {
       daily:{date:null,correct:0,met:false}, lastGoalDate:null // daily goal + streak (Duolingo-style)
     };
   },
-  save(){
+  save(playerId){
     this.data.updatedAt=Date.now();
+    // stamp the specific player this change belongs to (falls back to whoever is currently playing)
+    // so cross-device sync can merge per-player instead of overwriting one child's progress with the other's.
+    const pid = playerId || (typeof App!=='undefined' ? App.cur : null);
+    if(pid && this.data.players[pid]) this.data.players[pid].updatedAt = this.data.updatedAt;
     this.saveLocalOnly();
     if(typeof Sync!=='undefined') Sync.queuePush();
   },
@@ -621,15 +667,26 @@ const Store = {
    Optional: only active once SUPABASE_URL/ANON_KEY (above) are filled in AND a
    device has a "family sync code" saved. Every family member's device that shares
    the same code reads/writes the same row, so progress/leaderboard/parent
-   dashboard stay in sync across phones + PC. Whole-profile last-write-wins per
-   family (via `updatedAt`) — plenty for one household where devices aren't used
-   by two people at the exact same second. Fails silently offline. */
+   dashboard stay in sync across phones + PC.
+
+   MERGE, not overwrite: earlier versions treated the whole family blob as one
+   last-write-wins unit. That's what caused real data loss — e.g. Aviv playing
+   on his tablet for an hour while a parent opened the dashboard on another
+   device would push a stale snapshot back and silently erase his session.
+   Now every push first re-pulls and merges field-by-field (see mergeData/
+   mergePlayer below): each player's progress fields (coins/level/ability/etc.)
+   are taken from whichever *that specific player's* copy was touched most
+   recently (per-player `updatedAt`, not the whole-file one), and daily play
+   `time` is merged by taking the max per calendar day so a session can never
+   be zeroed out by a sync from another device. Fails silently offline —
+   local localStorage play always keeps working regardless of cloud state. */
 const Sync = {
   key:'wordquest_family_code',
   client:null,
   enabled:false,
   pushTimer:null,
   status:'offline',   // offline | syncing | synced | error
+  lastSync:null,       // Date.now() of the last successful pull or push
 
   code(){ return (localStorage.getItem(this.key)||'').trim(); },
   setCode(c){ localStorage.setItem(this.key, (c||'').trim()); },
@@ -640,17 +697,70 @@ const Sync = {
     catch(e){ this.enabled=false; }
   },
 
+  // combine a local and a remote whole-save blob without throwing anything away
+  mergeData(local, remote){
+    if(!remote) return local;
+    if(!local) return remote;
+    const merged = { settings: (remote.updatedAt||0) > (local.updatedAt||0) ? remote.settings : local.settings, players:{} };
+    const ids = new Set([...Object.keys(local.players||{}), ...Object.keys(remote.players||{})]);
+    ids.forEach(id=>{
+      const lp=local.players&&local.players[id], rp=remote.players&&remote.players[id];
+      merged.players[id] = (!lp) ? rp : (!rp) ? lp : this.mergePlayer(lp, rp);
+    });
+    merged.telemetry = this.mergeTelemetry(local.telemetry, remote.telemetry);
+    merged.bugs = this.mergeBugs(local.bugs, remote.bugs);
+    merged.updatedAt = Math.max(local.updatedAt||0, remote.updatedAt||0);
+    return merged;
+  },
+  // per-player merge: scalar progress (coins/level/ability/stars/daily/streak/etc.) comes from
+  // whichever copy of THIS player was updated more recently; `time` (minutes played per day) and
+  // `history` are merged field-by-field so neither device can wipe out the other's data.
+  mergePlayer(lp, rp){
+    const lu=lp.updatedAt||0, ru=rp.updatedAt||0;
+    const newer = lu>=ru ? lp : rp, older = lu>=ru ? rp : lp;
+    const out = Object.assign({}, older, newer); // shallow: newer's scalar fields win
+    out.time = {};
+    const days = new Set([...Object.keys(lp.time||{}), ...Object.keys(rp.time||{})]);
+    days.forEach(d=>{ out.time[d] = Math.max((lp.time&&lp.time[d])||0, (rp.time&&rp.time[d])||0); });
+    const histByDate = {};
+    (older.history||[]).forEach(h=>histByDate[h.date]=h);
+    (newer.history||[]).forEach(h=>histByDate[h.date]=h);
+    out.history = Object.values(histByDate).sort((a,b)=>a.date<b.date?-1:1).slice(-30);
+    out.updatedAt = Math.max(lu,ru);
+    return out;
+  },
+  // telemetry (product-improvement stats) is purely additive across devices — sum the counters
+  mergeTelemetry(lt, rt){
+    lt = lt||{items:{}}; rt = rt||{items:{}};
+    const out={items:{}};
+    const ids = new Set([...Object.keys(lt.items||{}), ...Object.keys(rt.items||{})]);
+    ids.forEach(id=>{
+      const a=lt.items[id]||{shown:0,correct:0,wrong:{}}, b=rt.items[id]||{shown:0,correct:0,wrong:{}};
+      const wrong={}; new Set([...Object.keys(a.wrong||{}),...Object.keys(b.wrong||{})]).forEach(k=>{ wrong[k]=(a.wrong[k]||0)+(b.wrong[k]||0); });
+      out.items[id] = { shown:(a.shown||0)+(b.shown||0), correct:(a.correct||0)+(b.correct||0), wrong };
+    });
+    return out;
+  },
+  // bug reports are additive across devices too — union by id (a kid's device is the only
+  // place a given report is created), newest first, capped so the log can't grow forever.
+  mergeBugs(lb, rb){
+    lb=lb||[]; rb=rb||[];
+    const byId={};
+    lb.concat(rb).forEach(b=>{ if(b && b.id) byId[b.id]=b; });
+    return Object.values(byId).sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,300);
+  },
+
   async pullAll(){
     if(!this.enabled || !this.code()) return;
     this.status='syncing'; this.renderStatus();
     try{
       const { data, error } = await this.client.from('wq_saves').select('data,updated_at').eq('family_code', this.code()).maybeSingle();
       if(error) throw error;
-      if(data && (data.updated_at||0) > (Store.data.updatedAt||0)){
-        Store.data = data.data;
+      if(data && data.data){
+        Store.data = this.mergeData(Store.data, data.data);
         Store.saveLocalOnly();
       }
-      this.status='synced';
+      this.status='synced'; this.lastSync=Date.now();
     }catch(e){ this.status='error'; console.warn('[Sync] pull failed', e); }
     this.renderStatus();
   },
@@ -661,23 +771,40 @@ const Sync = {
     this.pushTimer=setTimeout(()=>this.pushAll(), 1000);
   },
 
+  // always pull-merge-push (never a blind overwrite) so a stale local copy can't erase
+  // progress another device already pushed in the meantime.
   async pushAll(){
     if(!this.enabled || !this.code()) return;
     this.status='syncing'; this.renderStatus();
     try{
-      const row={ family_code:this.code(), data:Store.data, updated_at:Store.data.updatedAt };
+      const { data, error:selErr } = await this.client.from('wq_saves').select('data,updated_at').eq('family_code', this.code()).maybeSingle();
+      if(selErr) throw selErr;
+      if(data && data.data){
+        Store.data = this.mergeData(Store.data, data.data);
+        Store.saveLocalOnly();
+      }
+      const row={ family_code:this.code(), data:Store.data, updated_at:Store.data.updatedAt||Date.now() };
       const { error } = await this.client.from('wq_saves').upsert(row, { onConflict:'family_code' });
       if(error) throw error;
-      this.status='synced';
+      this.status='synced'; this.lastSync=Date.now();
     }catch(e){ this.status='error'; console.warn('[Sync] push failed', e); }
     this.renderStatus();
   },
 
+  timeAgo(ms){
+    const s=Math.round((Date.now()-ms)/1000);
+    if(s<5) return 'הרגע';
+    if(s<60) return 'לפני '+s+' שניות';
+    const m=Math.round(s/60);
+    if(m<60) return 'לפני '+m+' דק׳';
+    return 'לפני '+Math.round(m/60)+' שעות';
+  },
   renderStatus(){
     const el=document.getElementById('syncStatus'); if(!el) return;
     if(!this.enabled){ el.textContent='⚪ סנכרון ענן לא הוגדר עדיין (ראו SUPABASE_SETUP.md)'; return; }
-    if(!this.code()){ el.textContent='⚪ מצב מקומי — לא הוזן קוד משפחה במכשיר הזה'; return; }
-    const labels={ syncing:'🔄 מסנכרן…', synced:'🟢 מסונכרן לענן', error:'🔴 שגיאת סנכרון (הנתונים נשמרו מקומית)' };
+    if(!this.code()){ el.textContent='⚪ מצב מקומי — לא הוזן קוד משפחה במכשיר הזה. הנתונים נשמרים רק על המכשיר הזה.'; return; }
+    const when = this.lastSync ? ' · עודכן לאחרונה '+this.timeAgo(this.lastSync) : '';
+    const labels={ syncing:'🔄 מסנכרן…', synced:'🟢 מסונכרן לענן'+when, error:'🔴 שגיאת סנכרון — הנתונים נשמרו מקומית ויסונכרנו כשהחיבור יחזור'+when };
     el.textContent = labels[this.status] || '';
   }
 };
@@ -713,7 +840,7 @@ const Speech = {
   },
   // unlock audio on first user gesture (browsers block TTS until then)
   prime(){ try{ const s=window.speechSynthesis; if(!s) return; const u=new SpeechSynthesisUtterance(' '); u.volume=0; s.speak(u); }catch(e){} },
-  letter(l){ this.say(l,0.8); }
+  letter(l,rate=0.8){ this.say(l,rate); }
 };
 
 /* ---------- CONTENT ---------- */
@@ -771,6 +898,35 @@ const DIGRAPHS=[
   {w:'phone',e:'📱',pair:'ph'}
 ];
 
+// Worlds 2, 3 and 4 are a deliberately gradual on-ramp from letters into reading/typing whole
+// words, and each one is themed around a small set of target letters so the vocabulary stays
+// simple and focused (v5.6): World 2 = B/C, World 3 = D/F/S, World 4 = H/M/T/L/K. Every question
+// in one of these worlds — sounds AND words skill alike — draws only from that world's own pool,
+// so kids never meet a word outside the letters/difficulty that world is built around (this fixed
+// a v5.5 bug where World 2 level 5 could surface a hard word like "helicopter").
+const WORLD_WORDS = {
+  2: WORDS.filter(w=>['cat','car','cup','cow','cake','corn','bear','bird','ball','boat','bee','bed','bag','bus'].includes(w.w)),
+  3: WORDS.filter(w=>['dog','duck','door','drum','fox','frog','fish','fire','sun','star','snow','sock','shoe','ship'].includes(w.w)),
+  4: WORDS.filter(w=>['hen','hat','hand','milk','moon','tree','taxi','lion','leaf','lamp','key','kite'].includes(w.w))
+};
+// shared explicit curriculum for the 9 practice levels of Worlds 2, 3 and 4 (overrides the generic
+// level→(skill,type) cycling in Engine.levelFocus for those zones) — see the v5.5/v5.6 changelog
+// notes for the reasoning: letters→sounds carries over from World 1, phonics (sounds) is completed
+// first, THEN words are eased in via pure reading/matching before any typing, and only the very
+// last level (a capstone, right before the boss) asks for a whole word typed unscaffolded. Every
+// level draws from that world's own WORLD_WORDS pool (attached in levelFocus), not just the
+// typing-heavy ones — so sounds questions stay on-theme too.
+const WORLD_LEVEL_TEMPLATE = [
+  {skill:'sounds', type:'pickFirst'},        // level 1: first-letter, multiple choice (continues World 1)
+  {skill:'sounds', type:'typeFirstPic'},     // level 2: first-letter, typed (picture shown)
+  {skill:'sounds', type:'typeFirstAudio'},   // level 3: first-letter, typed (audio only, no picture)
+  {skill:'sounds', type:'typeLastPic'},      // level 4: last-letter, typed — completes phonics
+  {skill:'words',  type:'pickPic'},          // level 5: word→picture matching, multiple choice (reading only)
+  {skill:'words',  type:'typeMissing'},      // level 6: fill in ONE missing letter
+  {skill:'words',  type:'pickPic'},          // level 7: word→picture matching again
+  {skill:'words',  type:'typeMissing'},      // level 8: fill in ONE missing letter again
+  {skill:'words',  type:'typeWordPic'}       // level 9: type the whole word — capstone before the boss
+];
 const SKILL_HE={letters:'זיהוי אותיות',sounds:'צלילים (פוֹנטיקה)',words:'אוצר מילים',listening:'הקשבה'};
 const SKILL_COLOR={letters:'#60a5fa',sounds:'#a855f7',words:'#22c55e',listening:'#f59e0b'};
 
@@ -807,6 +963,17 @@ const Engine={
   // which single (skill,type) pair this level focuses on — deterministic per level number,
   // cycling through every type of every currently-unlocked skill over time.
   levelFocus(lv){
+    // Worlds 2, 3 and 4's 9 practice levels each follow the same explicit, hand-tuned curriculum
+    // (WORLD_LEVEL_TEMPLATE) instead of the generic cycling below — see that const's comment for
+    // why (the generic version introduced full word-typing far too early). Each world also carries
+    // its own restricted, letter-themed word pool (WORLD_WORDS), attached here as `wordPool` so
+    // every question type — sounds included — stays within that world's simple vocabulary.
+    const world=Math.ceil(lv/ZONE_LEN);
+    const worldStart=(world-1)*ZONE_LEN+1, worldEnd=world*ZONE_LEN-1;
+    if(WORLD_WORDS[world] && lv>=worldStart && lv<=worldEnd){
+      const tpl=WORLD_LEVEL_TEMPLATE[lv-worldStart];
+      return {skill:tpl.skill, type:tpl.type, wordPool:WORLD_WORDS[world]};
+    }
     const skills=this.skillsForLevel(lv);
     const pool=[];
     skills.forEach(sk=>SKILL_TYPES[sk].forEach(t=>pool.push({skill:sk,type:t})));
@@ -840,11 +1007,11 @@ const Engine={
     const add=(q)=>{ if(!q||used.has(q.itemId)) return false; used.add(q.itemId); qs.push(q); return true; };
     // spaced-repetition review items are shown in THIS level's focused type when they share its skill
     p.review.filter(r=>r.due<=Date.now()).slice(0,2).forEach(r=>
-      add(this.makeQuestion(p,r.skill,r.diff,r.itemId, focus.skill===r.skill?focus.type:undefined)));
+      add(this.makeQuestion(p,r.skill,r.diff,r.itemId, focus.skill===r.skill?focus.type:undefined, focus.wordPool)));
     let guard=0;
     while(qs.length<N && guard++<200){
       const diff=this.pickDiff(p,focus.skill,lv);
-      add(this.makeQuestion(p,focus.skill,diff,null,focus.type));
+      add(this.makeQuestion(p,focus.skill,diff,null,focus.type,focus.wordPool));
     }
     const shuffled=qs.sort(()=>Math.random()-0.5);
     shuffled.focus=focus;
@@ -866,7 +1033,7 @@ const Engine={
     return base;
   },
 
-  makeQuestion(p,skill,diff,forceItem,mode){
+  makeQuestion(p,skill,diff,forceItem,mode,wordPool){
     const numOpts = 4; // always 4 options for consistency
     if(skill==='letters'){
       const modes=SKILL_TYPES.letters;
@@ -924,7 +1091,7 @@ const Engine={
     if(skill==='sounds'){
       const modes=SKILL_TYPES.sounds;
       let m=mode||modes[Math.floor(Math.random()*modes.length)];
-      const item = (forceItem&&forceItem[0]==='S')? (WORDS.find(w=>'S_'+w.w===forceItem)||this.randWord(diff)) : this.randWord(diff);
+      const item = (forceItem&&forceItem[0]==='S')? (WORDS.find(w=>'S_'+w.w===forceItem)||this.randWord(diff)) : (wordPool?this.randWordFromPool(wordPool):this.randWord(diff));
       const first=item.w[0].toUpperCase(), last=item.w[item.w.length-1].toUpperCase();
       const base={skill,diff,itemId:'S_'+item.w,mode:m,prompt:''};
       if(m==='pickFirst'){
@@ -948,7 +1115,7 @@ const Engine={
     if(skill==='words'){
       const modes=SKILL_TYPES.words;
       let m=mode||modes[Math.floor(Math.random()*modes.length)];
-      const item = (forceItem&&forceItem[0]==='W')? (WORDS.find(w=>'W_'+w.w===forceItem)||this.randWord(diff)) : this.randWord(diff);
+      const item = (forceItem&&forceItem[0]==='W')? (WORDS.find(w=>'W_'+w.w===forceItem)||this.randWord(diff)) : (wordPool?this.randWordFromPool(wordPool):this.randWord(diff));
       const base={skill,diff,itemId:'W_'+item.w,mode:m,prompt:''};
       if(m==='pickPic'){
         const opts=this.wordPicOptions(item,numOpts);
@@ -1011,6 +1178,16 @@ const Engine={
     if(!pool.length) pool=WORDS.filter(w=>!this.recentWords.includes(w.w));
     if(!pool.length) pool=WORDS;
     const pick=pool[Math.floor(Math.random()*pool.length)];
+    this.recentWords.push(pick.w); if(this.recentWords.length>15) this.recentWords.shift();
+    return pick;
+  },
+  // used by Worlds 2/3/4 (see WORLD_WORDS / WORLD_LEVEL_TEMPLATE) — draws only from that world's
+  // own small, letter-themed word pool so every question (sounds and words alike) stays on-theme
+  // and the whole-word-typing capstone in level 9 mostly reuses words already met earlier levels.
+  randWordFromPool(pool){
+    let p=pool.filter(w=>!this.recentWords.includes(w.w));
+    if(!p.length) p=pool;
+    const pick=p[Math.floor(Math.random()*p.length)];
     this.recentWords.push(pick.w); if(this.recentWords.length>15) this.recentWords.shift();
     return pick;
   },
@@ -1127,8 +1304,14 @@ const App={
     // pull the latest cloud data (from other devices) once at boot, then refresh what's on screen
     Sync.pullAll().then(()=>{ this.renderProfiles(); if(document.getElementById('s-dash').classList.contains('active')) this.renderDash(); });
   },
-  show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); },
-  today(){ return new Date().toISOString().slice(0,10); },
+  show(id){
+    if(id!=='s-dash') this.stopDashPoll();
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active');
+  },
+  // local calendar date (not UTC) — using toISOString() here would shift the "day" at UTC midnight,
+  // which is evening/afternoon in most timezones and could misfile part of a play session under the wrong date.
+  dateStr(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); },
+  today(){ return this.dateStr(new Date()); },
 
   startTimer(){ this.lastTick=Date.now(); if(this.timer) return; this.timer=setInterval(()=>this.tick(),5000); },
   tick(){ if(!this.cur||document.hidden) return; const now=Date.now(); const sec=Math.round((now-this.lastTick)/1000); this.lastTick=now;
@@ -1145,7 +1328,7 @@ const App={
       if(p.history.length>30) p.history=p.history.slice(-30);
     }
   },
-  yesterday(){ return new Date(Date.now()-864e5).toISOString().slice(0,10); },
+  yesterday(){ return this.dateStr(new Date(Date.now()-864e5)); },
   // reset the daily-goal counter whenever a new day starts
   ensureDaily(p){
     const d=this.today();
@@ -1296,7 +1479,7 @@ const App={
       const zoneEl=document.createElement('div'); zoneEl.className='zone'+(zoneDone?' zonecomplete':'');
       const zoneUnlocked = p.maxLevel > (z-1)*ZONE_LEN;
       const head=document.createElement('div'); head.className='zonehead'+(zoneUnlocked?'':' lockedzone');
-      head.innerHTML='<span class="zn">'+(zoneUnlocked?'🗺️':'🔒')+' אזור '+z+'</span><span class="zt">'+this.sectionName(z)+'</span>'+
+      head.innerHTML='<span class="zn">'+(zoneUnlocked?'🗺️':'🔒')+' עולם '+z+'</span><span class="zt">'+this.sectionName(z)+'</span>'+
         (zoneDone?'<span class="zonedone">✅ הושלם</span>':'');
       zoneEl.appendChild(head);
       const inner=document.createElement('div'); inner.className='zonelevels';
@@ -1311,7 +1494,7 @@ const App={
         if(boss){
           n.style.gridRow=(practiceRows+1); n.style.gridColumn='1 / -1';
           n.innerHTML='<div class="bossband">בוס</div>'+(locked?'🔒':done?'👑':this.bossEmoji(z))+
-            '<div class="lbl">קרב בוס · אזור '+z+'</div>';
+            '<div class="lbl">קרב בוס · עולם '+z+'</div>';
         } else {
           // boustrophedon (snake): row0 goes left→right, row1 right→left, row2 left→right, ...
           const i=s-1, row=Math.floor(i/cols), colInRow=i%cols;
@@ -1362,7 +1545,7 @@ const App={
     const z=Math.ceil(lv/ZONE_LEN);
     const focus=qs.focus;
     const focusTxt = focus ? (' · '+SKILL_HE[focus.skill]+': '+this.typeLabel(focus.skill,focus.type)) : '';
-    document.getElementById('exLevelInfo').textContent='אזור '+z+' · שלב '+(((lv-1)%ZONE_LEN)+1)+focusTxt;
+    document.getElementById('exLevelInfo').textContent='עולם '+z+' · שלב '+(((lv-1)%ZONE_LEN)+1)+focusTxt;
     document.getElementById('coinN2').textContent=p.coins;
     document.getElementById('testSkipEx').style.display = (this.cur==='tester') ? '' : 'none';
     this.show('s-ex'); this.renderQuestion();
@@ -1393,10 +1576,15 @@ const App={
       if(q.pic){ const pic=document.createElement('div'); pic.className='bigq'; pic.style.fontSize='3.4rem'; pic.textContent=q.pic; stage.appendChild(pic); }
       const w=document.createElement('div'); w.className='bigq word en'; w.style.letterSpacing='6px'; w.textContent=q.stageValue; stage.appendChild(w);
     }
-    if(q.stageType==='letter' || q.stageType==='emoji' || q.stageType==='wordmask'){
+    if(q.stageType==='letter' || q.stageType==='emoji' || q.stageType==='wordmask' || q.stageType==='audio'){
       const rb=document.createElement('button'); rb.className='replay'; rb.textContent='🔊 שמע שוב';
       rb.onclick=()=>{ q.stageType==='letter'?Speech.letter(q.say):Speech.say(q.say); };
       stage.appendChild(rb);
+      // "slow motion" replay — the #1 fix for unclear TTS: half-speed re-pronunciation,
+      // no cost, always available, so a kid who missed a sound never gets stuck.
+      const sb2=document.createElement('button'); sb2.className='replay slow'; sb2.textContent='🐢 לאט יותר';
+      sb2.onclick=()=>{ q.stageType==='letter'?Speech.letter(q.say,0.5):Speech.say(q.say,0.5); };
+      stage.appendChild(sb2);
     }
     // clue button for first-letter (picture) questions — reveals the word, costs coins/damage
     if(q.skill==='sounds'){
@@ -1427,7 +1615,7 @@ const App={
   },
   renderQuestion(){
     const ex=this.ex, q=ex.qs[ex.i];
-    ex.qStart=Date.now(); ex.locked=false; ex.qWrong=false; ex.wrongChoices=[]; this._clueUsed=false;
+    ex.qStart=Date.now(); ex.locked=false; ex.qWrong=false; ex.wrongChoices=[]; ex.hintShown=false; this._clueUsed=false;
     document.getElementById('exProg').style.width=(ex.i/ex.qs.length*100)+'%';
     document.getElementById('exCount').textContent=(ex.i+1)+' / '+ex.qs.length;
     this.paintQuestion(q,{prompt:'exPrompt',heb:'exHeb',stage:'exStage',options:'exOptions'},(b,o,qq)=>this.answer(b,o,qq));
@@ -1441,7 +1629,19 @@ const App={
       ex.wrongChoices.push(opt.label);
       if(q.inputType==='text'){ this.shakeTypeInput('exOptions'); }
       else { btn.classList.add('wrong'); btn.style.pointerEvents='none'; }
-      this.toast('נסו שוב 🙂',true);
+      // audio-only questions (pure listening, no picture/text shown) can trip kids up when the
+      // TTS voice is unclear rather than because they don't know the answer — after 2 misses,
+      // auto-reveal a text hint (same discount as the manual 💡 clue) so no one gets stuck.
+      if(q.stageType==='audio' && ex.wrongChoices.length>=2 && !ex.hintShown){
+        ex.hintShown=true; this._clueUsed=true;
+        const stageEl=document.getElementById('exStage');
+        if(stageEl && !stageEl.querySelector('.clueword')){
+          const w=document.createElement('div'); w.className='clueword en'; w.textContent=q.say; stageEl.appendChild(w);
+        }
+        this.toast('קשה לשמוע? הנה רמז בכתב 💡',false);
+      } else {
+        this.toast('נסו שוב 🙂',true);
+      }
       return;
     }
     // CORRECT (possibly after retries)
@@ -1529,7 +1729,7 @@ const App={
         '<div class="lb-rank">'+(medals[i]||('#'+(i+1)))+'</div>'+
         '<div class="lb-ava">'+this.avatarStr(r.p)+'</div>'+
         '<div class="lb-main"><div class="lb-name">'+r.p.he+'</div><div class="lb-chips">'+
-          '<span class="lb-chip">🗺️ אזור '+s.zone+' · שלב '+(((s.lvl-1)%ZONE_LEN)+1)+'</span>'+
+          '<span class="lb-chip">🗺️ עולם '+s.zone+' · שלב '+(((s.lvl-1)%ZONE_LEN)+1)+'</span>'+
           '<span class="lb-chip">👹 '+s.bosses+' בוסים</span>'+
           '<span class="lb-chip">⭐ '+s.stars+'</span>'+
           '<span class="lb-chip">🪙 '+s.coins+'</span>'+
@@ -1542,7 +1742,7 @@ const App={
   /* ---------- WORLDS + BOSS BATTLES ---------- */
   goLevel(lv){ if(lv%ZONE_LEN===0) this.startBoss(lv); else this.startLevel(lv); },
   bossEmoji(world){ const a=['👾','🐉','👹','🤖','👺','🦖','💀','🐲','👽','🦂']; return a[(world-1)%a.length]; },
-  sectionName(z){ return ['אותיות וצלילים','מילים ראשונות','אוצר מילים','הקשבה והבנה','אלופי המילים','אתגר האלופים'][z-1] || ('אתגר '+z); },
+  sectionName(z){ return ['אותיות וצלילים','מילים ראשונות','אוצר מילים','מילים נוספות','אלופי המילים','אתגר האלופים'][z-1] || ('אתגר '+z); },
 
   startBoss(lv){
     const world=lv/ZONE_LEN;
@@ -1555,7 +1755,7 @@ const App={
   renderPrep(){
     const p=Store.player(this.cur), bs=this.boss;
     document.getElementById('prepBossEmoji').textContent=this.bossEmoji(bs.world);
-    document.getElementById('prepBossTitle').textContent='בוס · אזור '+bs.world+' · '+this.sectionName(bs.world);
+    document.getElementById('prepBossTitle').textContent='בוס · עולם '+bs.world+' · '+this.sectionName(bs.world);
     document.getElementById('prepCoins').textContent=p.coins;
     document.getElementById('prepPower').textContent=Shop.attack(p);
     document.getElementById('prepHearts').textContent=3+(bs.use.shield?1:0);
@@ -1568,7 +1768,7 @@ const App={
     const seen=new Set();
     bs.pool.thisZone.forEach(f=>{ const label=SKILL_HE[f.skill]; if(!seen.has(label)){ seen.add(label);
       const c=document.createElement('span'); c.className='poolChip'; c.textContent=label; pbox.appendChild(c); } });
-    if(bs.pool.prior.length){ const c=document.createElement('span'); c.className='poolChip'; c.textContent='+ קצת חזרה מאזורים קודמים'; pbox.appendChild(c); }
+    if(bs.pool.prior.length){ const c=document.createElement('span'); c.className='poolChip'; c.textContent='+ קצת חזרה מעולמות קודמים'; pbox.appendChild(c); }
     const box=document.getElementById('prepPotions'); box.innerHTML='';
     Shop.potions.forEach(pt=>{
       const cnt=p.potions[pt.id]||0;
@@ -1600,7 +1800,7 @@ const App={
     Store.save();
     document.getElementById('bossEmoji').textContent=this.bossEmoji(bs.world);
     document.getElementById('bossPlayerAva').textContent=this.avatarStr(p);
-    document.getElementById('bossLevelInfo').textContent='👹 קרב בוס · אזור '+bs.world+' · '+this.sectionName(bs.world);
+    document.getElementById('bossLevelInfo').textContent='👹 קרב בוס · עולם '+bs.world+' · '+this.sectionName(bs.world);
     document.getElementById('testSkipBoss').style.display = (this.cur==='tester') ? '' : 'none';
     document.getElementById('bossQNum').textContent='1';
     document.getElementById('bossOkN').textContent='0';
@@ -1648,7 +1848,7 @@ const App={
     const src = useReview ? bs.pool.prior : bs.pool.thisZone;
     const focus = src[Math.floor(Math.random()*src.length)];
     const diff=Math.min(5, Engine.pickDiff(p,focus.skill,bs.lv)+1);   // bosses ask harder questions
-    let q,g=0; do{ q=Engine.makeQuestion(p,focus.skill,diff,null,focus.type); }while(q.itemId===bs.lastId && g++<10);
+    let q,g=0; do{ q=Engine.makeQuestion(p,focus.skill,diff,null,focus.type,focus.wordPool); }while(q.itemId===bs.lastId && g++<10);
     bs.lastId=q.itemId; bs.q=q;
     this.updateBossHUD();
     this.paintQuestion(q,{prompt:'bossPrompt',heb:'bossHeb',stage:'bossStage',options:'bossOptions'},(b,o,qq)=>this.bossAnswer(b,o,qq));
@@ -1707,7 +1907,7 @@ const App={
     Store.save();
     document.getElementById('bossResEmoji').textContent='🏆';
     document.getElementById('bossResTitle').textContent='ניצחת את הבוס!';
-    document.getElementById('bossResMsg').textContent='אזור '+bs.world+' הושלם! אזור '+(bs.world+1)+' נפתח 🔓 · ✅ '+bs.correct+'/'+bs.total+' תשובות נכונות';
+    document.getElementById('bossResMsg').textContent='עולם '+bs.world+' הושלם! עולם '+(bs.world+1)+' נפתח 🔓 · ✅ '+bs.correct+'/'+bs.total+' תשובות נכונות';
     document.getElementById('bossResCoins').textContent=reward;
     document.getElementById('bossNext').style.display='';
     this.show('s-bossresult');
@@ -1772,17 +1972,31 @@ const App={
       Sync.pullAll().then(()=>{ Sync.pushAll(); this.renderDash(); this.renderProfiles(); });
     };
     document.getElementById('syncNow').onclick=()=>{ Sync.pushAll().then(()=>Sync.pullAll()).then(()=>{ this.renderDash(); this.renderProfiles(); }); };
+    document.getElementById('bugBtn').onclick=()=>this.openBugReport();
+    document.getElementById('bugCancel').onclick=()=>this.closeBugReport();
+    document.getElementById('bugSend').onclick=()=>this.submitBugReport();
+    document.getElementById('exportBugs').onclick=()=>this.exportBugs();
+    document.getElementById('clearBugs').onclick=()=>this.clearBugs();
   },
   checkPin(){ const v=document.getElementById('pinInput').value; if(v===Store.data.settings.pin){ document.getElementById('pinHint').textContent='קוד ברירת מחדל: 1234'; this.openDash(); } else { document.getElementById('pinHint').textContent='קוד שגוי, נסו שוב'; } },
 
   dashKid:'aviv',
+  dashPollTimer:null,
   openDash(){
     this.dashKid=this.cur||'aviv';
     document.getElementById('familyCodeInput').value=Sync.code();
     this.renderDash();
     this.show('s-dash');
     Sync.pullAll().then(()=>this.renderDash());   // parent may be checking from a device the boys don't use — grab the latest first
+    // keep the dashboard "live" while it's open: pull fresh cloud data every 15s so the
+    // parent doesn't have to know to refresh or press "sync now" themselves.
+    clearInterval(this.dashPollTimer);
+    this.dashPollTimer=setInterval(()=>{
+      if(!document.getElementById('s-dash').classList.contains('active')){ this.stopDashPoll(); return; }
+      Sync.pullAll().then(()=>this.renderDash());
+    }, 15000);
   },
+  stopDashPoll(){ clearInterval(this.dashPollTimer); this.dashPollTimer=null; },
   renderDash(){
     Sync.renderStatus();
     const tabs=document.getElementById('kidTabs'); tabs.innerHTML='';
@@ -1792,7 +2006,7 @@ const App={
       b.onclick=()=>{ this.dashKid=id; this.renderDash(); }; tabs.appendChild(b);
     });
     const p=Store.player(this.dashKid);
-    const days=[]; for(let i=13;i>=0;i--){ days.push(new Date(Date.now()-i*864e5).toISOString().slice(0,10)); }
+    const days=[]; for(let i=13;i>=0;i--){ days.push(this.dateStr(new Date(Date.now()-i*864e5))); }
     const mins=days.map(d=>Math.round((p.time[d]||0)/60));
     const maxM=Math.max(5,...mins);
     document.getElementById('timeBars').innerHTML=days.map((d,i)=>'<div class="bar" style="height:'+(mins[i]/maxM*100)+'%"><b>'+(mins[i]||'')+'</b><span>'+d.slice(5)+'</span></div>').join('');
@@ -1808,6 +2022,32 @@ const App={
       document.getElementById('histBars').innerHTML=hist.map(h=>'<div class="bar" style="height:'+(h.avg)+'%;background:linear-gradient(180deg,#4ade80,#22c55e)"><b>'+h.avg+'</b><span>'+h.date.slice(5)+'</span></div>').join('');
     } else document.getElementById('histBars').innerHTML='<p class="hint">עדיין אין מספיק נתונים — יופיע אחרי כמה ימי משחק.</p>';
     this.renderTele();
+    this.renderBugs();
+  },
+  renderBugs(){
+    const el=document.getElementById('bugList'); if(!el) return;
+    const bugs=Store.data.bugs||[];
+    if(!bugs.length){ el.innerHTML='<p class="hint">אין דיווחי באגים עדיין.</p>'; return; }
+    const screenLabel={'s-ex':'תרגול','s-boss':'קרב בוס','s-map':'מפה','s-shop':'חנות','s-bossprep':'לפני קרב בוס'};
+    el.innerHTML=bugs.map(b=>{
+      const when=new Date(b.ts).toLocaleString('he-IL');
+      const who=b.playerName||'—';
+      const where=screenLabel[b.screen]||b.screen||'—';
+      const lvl=b.level?(' · '+b.level):'';
+      let qLine='';
+      if(b.question){
+        const parts=[];
+        if(b.question.prompt) parts.push('שאלה: '+b.question.prompt);
+        if(b.question.heb) parts.push(b.question.heb);
+        if(b.question.say) parts.push('מילה/צליל: <span class="en">'+b.question.say+'</span>');
+        if(b.question.answer) parts.push('תשובה נכונה: <span class="en">'+b.question.answer+'</span>');
+        qLine='<div class="muted" style="font-size:.9rem;margin-top:4px">'+parts.join(' · ')+'</div>';
+      }
+      return '<div class="tele-item" style="display:block;text-align:right">'+
+        '<div><b>'+who+'</b> <span class="muted">· '+where+lvl+' · '+when+'</span></div>'+
+        '<div style="margin-top:4px">"'+b.note.replace(/</g,'&lt;')+'"</div>'+
+        qLine+'</div>';
+    }).join('');
   },
   renderTele(){
     const items=Store.data.telemetry.items; const rows=[];
@@ -1831,8 +2071,57 @@ const App={
 
   exportData(){ const blob=new Blob([JSON.stringify(Store.data,null,2)],{type:'application/json'});
     const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='wordquest-backup.json'; a.click(); },
+  exportBugs(){ const blob=new Blob([JSON.stringify(Store.data.bugs||[],null,2)],{type:'application/json'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='wordquest-bugs.json'; a.click(); },
+  clearBugs(){ if(!confirm('למחוק את כל רשימת הבאגים שדווחו?')) return;
+    Store.data.bugs=[]; Store.save(); this.renderBugs(); },
   resetKid(){ const p=Store.player(this.dashKid); if(!confirm('לאפס את כל ההתקדמות של '+p.he+'?')) return;
-    Store.data.players[this.dashKid]=Store.freshPlayer(p.en,p.he,p.ava); Store.save(); this.renderDash(); }
+    const fresh=Store.freshPlayer(p.en,p.he,p.ava);
+    fresh.updatedAt=Date.now(); // stamp "now" (not 0) so a sync merge from another device can't silently un-reset this
+    Store.data.players[this.dashKid]=fresh;
+    Store.save(this.dashKid); this.renderDash(); },
+
+  /* ---------- REPORT A BUG ----------
+     Floating button visible on every screen. Logs whatever question/level was on screen
+     plus the kid's own note, so bugs get fixed against real context instead of vague
+     "something was weird" reports. Stored in Store.data.bugs (synced like everything else),
+     reviewed later from the parent dashboard. */
+  openBugReport(){
+    document.getElementById('bugText').value='';
+    document.getElementById('bugSentMsg').style.display='none';
+    document.getElementById('bugActions').style.display='flex';
+    document.getElementById('bugModal').classList.add('show');
+    setTimeout(()=>document.getElementById('bugText').focus(),60);
+  },
+  closeBugReport(){ document.getElementById('bugModal').classList.remove('show'); },
+  // best-effort snapshot of whatever's currently on screen (normal level or boss battle)
+  currentQuestionSnapshot(){
+    let q=null, level=null;
+    if(this.ex && this.ex.qs && this.ex.qs[this.ex.i]){ q=this.ex.qs[this.ex.i]; level='שלב '+this.ex.lv; }
+    else if(this.boss && this.boss.q){ q=this.boss.q; level='בוס · עולם '+this.boss.world; }
+    if(!q) return { level, question:null };
+    return { level, question:{ skill:q.skill||null, type:q.type||null, prompt:q.prompt||null,
+      heb:q.heb||null, say:q.say||null, stageType:q.stageType||null, answer:q.answer||null } };
+  },
+  submitBugReport(){
+    const txt=document.getElementById('bugText').value.trim();
+    if(!txt){ alert('נא לכתוב מה קרה'); return; }
+    const ctx=this.currentQuestionSnapshot();
+    const screen=(document.querySelector('.screen.active')||{}).id||null;
+    const p = this.cur ? Store.player(this.cur) : null;
+    const bug={
+      id:'bug_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
+      ts:Date.now(), player:this.cur||null, playerName:p?p.he:null,
+      screen, level:ctx.level, question:ctx.question, note:txt
+    };
+    if(!Store.data.bugs) Store.data.bugs=[];
+    Store.data.bugs.unshift(bug);
+    Store.data.bugs=Store.data.bugs.slice(0,300);
+    Store.save();
+    document.getElementById('bugSentMsg').style.display='';
+    document.getElementById('bugActions').style.display='none';
+    setTimeout(()=>this.closeBugReport(),1300);
+  }
 };
 
 window.addEventListener('load',()=>App.init());
