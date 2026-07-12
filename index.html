@@ -95,6 +95,11 @@
   .bigq.en{background:#fff;color:#1e40af;border-radius:26px;padding:6px 40px;display:inline-block;
     box-shadow:0 8px 0 rgba(0,0,0,.14);font-weight:900}
   .bigq.word{font-size:3.4rem;font-weight:900;letter-spacing:2px}
+  .pixicon{display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);
+    width:120px;height:120px;margin:6px auto;border-radius:10px;overflow:hidden;box-shadow:0 6px 0 rgba(0,0,0,.14)}
+  .pixicon span{width:100%;height:100%;background:transparent}
+  .pixicon.small{width:44px;height:44px;margin:0;border-radius:6px;box-shadow:none}
+  .opt .pixicon.small{display:grid}
   .speaker{background:var(--purple);border:none;color:#fff;border-radius:50%;width:76px;height:76px;
     font-size:2rem;cursor:pointer;box-shadow:var(--shadow);margin:8px auto;display:block}
   .speaker:active{transform:scale(.9)}
@@ -578,7 +583,7 @@
 <script>
 "use strict";
 /* Version: bump the minor (2.0 -> 2.1) for each change; major (-> 3.0) for a big new phase */
-const VERSION='5.7';
+const VERSION='6.1';
 /* ---- CLOUD SYNC CONFIG ----
    Both are safe to leave in this file — the anon/publishable key is meant to be
    public; real protection comes from the per-family "sync code" each device enters. */
@@ -610,6 +615,7 @@ const Store = {
     if(!this.data.players.tester) this.data.players.tester = this.freshPlayer('Tester','בודק (הורה)','🧪');
     // migration: shop fields for older saves
     Object.values(this.data.players).forEach(pl=>{
+      if(pl.ability && pl.ability.sentences===undefined) pl.ability.sentences=0; // migration: World 5 sentences skill
       if(!pl.owned) pl.owned=[pl.ava];
       if(!pl.ownedThemes) pl.ownedThemes=['default'];
       if(!pl.theme) pl.theme='default';
@@ -639,7 +645,7 @@ const Store = {
     return { en, he, ava, coins:0, streakDays:0, lastPlayed:null, updatedAt:0, // per-player timestamp, used for cross-device merge
 
       level:1, maxLevel:1, stars:{},              // stars[level]=1..3
-      ability:{ letters:0, sounds:0, words:0, listening:0 },
+      ability:{ letters:0, sounds:0, words:0, listening:0, sentences:0 },
       review:[],                                   // spaced-repetition queue
       time:{},                                     // 'YYYY-MM-DD' -> seconds
       history:[],                                  // [{date, avg, coins}]
@@ -888,8 +894,53 @@ const WORDS=[
   {w:'cactus',e:'🌵',d:3},{w:'basketball',e:'🏀',d:5},{w:'tennis',e:'🎾',d:3},{w:'medal',e:'🥇',d:3},
   {w:'robot',e:'🤖',d:3},{w:'ghost',e:'👻',d:3},{w:'crystal',e:'💎',d:4},
   // --- added v5.7: a few extra simple D/F/S words so World 3's pool reaches 30+ words ---
-  {w:'doll',e:'🪆',d:2},{w:'fan',e:'🪭',d:1},{w:'soap',e:'🧼',d:2}
+  {w:'doll',e:'🪆',d:2},{w:'fan',e:'🪭',d:1},{w:'soap',e:'🧼',d:2},
+  // --- added v5.8: World 5 Minecraft-themed vocabulary — pictures use PIXEL_ICONS (see below)
+  // instead of an emoji; the `e` field below is just a text fallback for any spot that hasn't
+  // been upgraded to pixel rendering yet. ---
+  {w:'diamond',e:'💎',d:3},{w:'emerald',e:'💚',d:3},{w:'gold',e:'🥇',d:2},{w:'redstone',e:'🔴',d:3},
+  {w:'tnt',e:'🧨',d:2},{w:'pickaxe',e:'⛏️',d:3},{w:'sword',e:'⚔️',d:2},{w:'creeper',e:'👹',d:2},
+  {w:'zombie',e:'🧟',d:2},{w:'wolf',e:'🐺',d:2}
 ];
+
+// Pixel-art icons for the World 5 Minecraft-themed words — an 8x8 grid rendered in CSS, drawn to
+// evoke (not copy) the real in-game textures. '.' = transparent; every other char is a color
+// looked up per-icon in its own legend. Kept separate from WORDS.e (which stays a plain-text
+// emoji fallback for any render path that hasn't been switched to Pixel.render() yet).
+const PIXEL_ICONS = {
+  diamond:{legend:{o:'#145252',D:'#5CDBD3',d:'#2AA198',h:'#E8FFFC'},rows:[
+    '..oooo..','.oDDDDo.','oDhDDdDo','oDDDDDDo','.oDdDDo.','..oDDo..','...oo...','........']},
+  emerald:{legend:{o:'#0B4A2A',D:'#17C964',d:'#0E7C3F',h:'#8CF5B0'},rows:[
+    '..oooo..','.oDDDDo.','oDhDDdDo','oDDDDDDo','.oDdDDo.','..oDDo..','...oo...','........']},
+  gold:{legend:{o:'#6B5416',G:'#FFD700',g:'#C9A227',h:'#FFF6B0'},rows:[
+    '........','........','..oooo..','.oGGGGo.','.oGhgGo.','oGGGGGGo','oggggggo','.oooooo.']},
+  redstone:{legend:{R:'#FF3B30',r:'#7A0000',C:'#FFD1C4'},rows:[
+    '...RR...','..RrrR..','.RrCCrR.','RrCCCCrR','RrCCCCrR','.RrCCrR.','..RrrR..','...RR...']},
+  tnt:{legend:{R:'#C1272D',W:'#F5F5F5',K:'#1A1A1A',r:'#7A1418'},rows:[
+    'RRRRRRRR','RRRRRRRR','WWWWWWWW','WKWKKWKW','WKWKKWKW','WWWWWWWW','RRRRRRRR','rrrrrrrr']},
+  pickaxe:{legend:{H:'#B0B0B0',h:'#6E6E6E',S:'#8B5A2B',s:'#5A3A1B'},rows:[
+    'HHhh....','HhhhH...','hHhhHh..','..ShHh..','...Sh...','....Sh..','.....Sh.','......Ss']},
+  sword:{legend:{B:'#E8E8E8',b:'#A0A0A0',G:'#E0B000',S:'#6E4420',g:'#4A2C10'},rows:[
+    '.......B','......Bb','.....Bb.','....Bb..','...Bb...','..GG....','..Sg....','..Sg....']},
+  creeper:{legend:{G:'#6BBF59',K:'#141414'},rows:[
+    'GGGGGGGG','GGGGGGGG','GKKGGKKG','GKKGGKKG','GGKKKKGG','GKKGGKKG','GKKGGKKG','GGGGGGGG']},
+  zombie:{legend:{Z:'#7A9B5C',K:'#141414',M:'#2E4A22',B:'#3355AA'},rows:[
+    'ZZZZZZZZ','ZZZZZZZZ','ZKKZZKKZ','ZKKZZKKZ','ZZZZZZZZ','ZZMMMMZZ','BBBBBBBB','BBBBBBBB']},
+  wolf:{legend:{F:'#9E9E9E',f:'#6E6E6E',W:'#F5F5F5',N:'#1A1A1A',E:'#3A2A1A'},rows:[
+    'F......F','FF....FF','FfFFFFfF','FEFWWFEF','FFWWWWFF','.FWNWWF.','..FWWF..','...FF...']}
+};
+const Pixel={
+  render(word,size){
+    const icon=word&&PIXEL_ICONS[word]; if(!icon) return null;
+    const div=document.createElement('div'); div.className='pixicon '+(size||'big');
+    icon.rows.join('').split('').forEach(ch=>{
+      const cell=document.createElement('span');
+      const col=icon.legend[ch]; if(col) cell.style.background=col;
+      div.appendChild(cell);
+    });
+    return div;
+  }
+};
 
 // two-letter blends (digraphs) that make one sound — used by the letters "typeDigraph" question type
 const DIGRAPHS=[
@@ -934,8 +985,65 @@ const WORLD_LEVEL_TEMPLATE = [
   {skill:'words',  type:'typeMissing'},      // level 8: fill in ONE missing letter again
   {skill:'words',  type:'typeWordPic'}       // level 9: type the whole word — capstone before the boss
 ];
-const SKILL_HE={letters:'זיהוי אותיות',sounds:'צלילים (פוֹנטיקה)',words:'אוצר מילים',listening:'הקשבה'};
-const SKILL_COLOR={letters:'#60a5fa',sounds:'#a855f7',words:'#22c55e',listening:'#f59e0b'};
+
+// World 5 — simple sentences, built from every noun taught in Worlds 2-4 plus 10 new
+// Minecraft-themed nouns (WORLD_WORDS[5], pixel-art pictures via PIXEL_ICONS) and a small set of
+// glue words (articles/verbs/adjectives — not picturable, so not in WORDS). The 3 new-vocab
+// levels are interleaved AMONG the 6 sentence levels (not bunched at the start) so the world feels
+// varied, and every sentence level after a new word is introduced keeps pulling it back into
+// rotation — new vocabulary doesn't get parked, it resurfaces the rest of the world (and beyond).
+const GLUE_WORDS=['I','a','the','is','can','see','like','have','has','my','in','big','small'];
+WORLD_WORDS[5] = WORDS.filter(w=>['diamond','emerald','gold','redstone','tnt','pickaxe','sword','creeper','zombie','wolf'].includes(w.w));
+// sentence bank: `noun` is the WORDS.w key used for the picture; `words` tokenizes `s` exactly
+// (last token keeps its punctuation) so wordOrder can scramble/rebuild it.
+const SENTENCE_BANK=[
+  {s:'I see a cat.', noun:'cat', words:['I','see','a','cat.']},
+  {s:'I have a dog.', noun:'dog', words:['I','have','a','dog.']},
+  {s:'The sun is big.', noun:'sun', words:['The','sun','is','big.']},
+  {s:'My cat is small.', noun:'cat', words:['My','cat','is','small.']},
+  {s:'I see a bee.', noun:'bee', words:['I','see','a','bee.']},
+  {s:'The house is big.', noun:'house', words:['The','house','is','big.']},
+  {s:'I like milk.', noun:'milk', words:['I','like','milk.']},
+  {s:'I have a fish.', noun:'fish', words:['I','have','a','fish.']},
+  {s:'I see a hen.', noun:'hen', words:['I','see','a','hen.']},
+  {s:'My dog is small.', noun:'dog', words:['My','dog','is','small.']},
+  {s:'I see a ball.', noun:'ball', words:['I','see','a','ball.']},
+  {s:'The bear is big.', noun:'bear', words:['The','bear','is','big.']},
+  {s:'I see a lion.', noun:'lion', words:['I','see','a','lion.']},
+  {s:'I can see a star.', noun:'star', words:['I','can','see','a','star.']},
+  {s:'The tiger is big.', noun:'tiger', words:['The','tiger','is','big.']},
+  {s:'I have a mouse.', noun:'mouse', words:['I','have','a','mouse.']},
+  {s:'I see a duck.', noun:'duck', words:['I','see','a','duck.']},
+  {s:'My frog is small.', noun:'frog', words:['My','frog','is','small.']},
+  {s:'I can see the moon.', noun:'moon', words:['I','can','see','the','moon.']},
+  {s:'I have a diamond.', noun:'diamond', words:['I','have','a','diamond.']},
+  {s:'The emerald is big.', noun:'emerald', words:['The','emerald','is','big.']},
+  {s:'I have gold.', noun:'gold', words:['I','have','gold.']},
+  {s:'I see redstone.', noun:'redstone', words:['I','see','redstone.']},
+  {s:'I have TNT.', noun:'tnt', words:['I','have','TNT.']},
+  {s:'I have a pickaxe.', noun:'pickaxe', words:['I','have','a','pickaxe.']},
+  {s:'I have a sword.', noun:'sword', words:['I','have','a','sword.']},
+  {s:'The creeper is big.', noun:'creeper', words:['The','creeper','is','big.']},
+  {s:'I see a zombie.', noun:'zombie', words:['I','see','a','zombie.']},
+  {s:'The wolf is big.', noun:'wolf', words:['The','wolf','is','big.']}
+];
+const SENTENCE_NOUNS=[...new Set(SENTENCE_BANK.map(s=>s.noun))].map(w=>WORDS.find(x=>x.w===w)).filter(Boolean);
+// World 5's own 9-level curriculum — the 3 new-vocab levels (2, 5, 8) sit BETWEEN sentence
+// levels instead of at the start, and each sentence level introduces exactly one new mechanic
+// (mirrors the gradual-introduction pattern used in Worlds 2-4).
+const WORLD5_LEVEL_TEMPLATE = [
+  {skill:'sentences', type:'pickPic'},        // level 1: sentence -> picture, multiple choice
+  {skill:'sounds',    type:'pickFirst'},      // level 2 (NEW VOCAB): first letter of a new Minecraft word
+  {skill:'sentences', type:'pic2sentence'},   // level 3: picture -> sentence, multiple choice
+  {skill:'sentences', type:'fillBlankMC'},    // level 4: fill the missing word, multiple choice
+  {skill:'words',     type:'pickPic'},        // level 5 (NEW VOCAB): match a new Minecraft word to its picture
+  {skill:'sentences', type:'wordOrder'},      // level 6: tap scrambled words into the right order
+  {skill:'sentences', type:'fillBlankTyped'}, // level 7: fill the missing word, typed
+  {skill:'words',     type:'typeMissing'},    // level 8 (NEW VOCAB): type the missing letter of a new word
+  {skill:'sentences', type:'typeSentencePic'} // level 9: type the whole sentence from a picture — capstone
+];
+const SKILL_HE={letters:'זיהוי אותיות',sounds:'צלילים (פוֹנטיקה)',words:'אוצר מילים',listening:'הקשבה',sentences:'משפטים פשוטים'};
+const SKILL_COLOR={letters:'#60a5fa',sounds:'#a855f7',words:'#22c55e',listening:'#f59e0b',sentences:'#ef4444'};
 
 /* ---------- QUESTION TYPES per skill area ----------
    Each area keeps its original multi-select modes AND gets >=3 new typed-answer modes.
@@ -944,7 +1052,8 @@ const SKILL_TYPES={
   letters:  ['caseU2L','caseL2U','audio','typeCaseU2L','typeCaseL2U','typeAudio','matchSame','typeDigraph'],
   sounds:   ['pickFirst','typeFirstPic','typeFirstAudio','typeLastPic'],
   words:    ['pickPic','typeWordPic','typeMissing','typeUnscramble'],
-  listening:['pickAudio','typeWordAudio','typeMissingAudio','typeFirstAudio']
+  listening:['pickAudio','typeWordAudio','typeMissingAudio','typeFirstAudio'],
+  sentences:['pickPic','pic2sentence','fillBlankMC','wordOrder','fillBlankTyped','typeSentencePic']
 };
 const TYPE_HE={
   letters:{caseU2L:'התאמה: גדולה→קטנה',caseL2U:'התאמה: קטנה→גדולה',audio:'זיהוי צליל אות',
@@ -952,7 +1061,9 @@ const TYPE_HE={
     matchSame:'התאמת אותיות זהות',typeDigraph:'הקלדת צירוף אותיות (ch/sh/th/wh/ph)'},
   sounds:{pickFirst:'בחירת אות פותחת',typeFirstPic:'הקלדת אות פותחת (תמונה)',typeFirstAudio:'הקלדת אות פותחת (שמיעה)',typeLastPic:'הקלדת אות מסיימת'},
   words:{pickPic:'התאמת מילה לתמונה',typeWordPic:'הקלדת מילה מתמונה',typeMissing:'השלמת אות חסרה',typeUnscramble:'סידור אותיות למילה'},
-  listening:{pickAudio:'הקשבה ובחירה',typeWordAudio:'הקלדה מהאזנה',typeMissingAudio:'השלמת אות מהאזנה',typeFirstAudio:'הקלדת אות פותחת מהאזנה'}
+  listening:{pickAudio:'הקשבה ובחירה',typeWordAudio:'הקלדה מהאזנה',typeMissingAudio:'השלמת אות מהאזנה',typeFirstAudio:'הקלדת אות פותחת מהאזנה'},
+  sentences:{pickPic:'משפט → תמונה',pic2sentence:'תמונה → משפט',fillBlankMC:'השלמת מילה חסרה (בחירה)',
+    wordOrder:'סידור מילים למשפט',fillBlankTyped:'השלמת מילה חסרה (הקלדה)',typeSentencePic:'הקלדת משפט שלם מתמונה'}
 };
 
 /* ---------- ENGINE ---------- */
@@ -962,6 +1073,7 @@ const Engine={
     const s=['letters'];
     if(lv>=3) s.push('sounds');
     if(lv>=5) s.push('words','listening');
+    if(lv>=(5-1)*ZONE_LEN+1) s.push('sentences'); // World 5 onward
     return s;
   },
   masteryPct(p,skill){ return Math.round(Math.min(100, (p.ability[skill]/MAX_ABILITY)*100)); },
@@ -977,6 +1089,14 @@ const Engine={
     // every question type — sounds included — stays within that world's simple vocabulary.
     const world=Math.ceil(lv/ZONE_LEN);
     const worldStart=(world-1)*ZONE_LEN+1, worldEnd=world*ZONE_LEN-1;
+    // World 5 has its own curriculum (WORLD5_LEVEL_TEMPLATE): sentence levels use the
+    // SENTENCE_BANK pool, the 3 interleaved new-vocab levels use WORLD_WORDS[5] (the new
+    // Minecraft-themed words) — see that const's comment for why they're interleaved.
+    if(world===5 && lv>=worldStart && lv<=worldEnd){
+      const tpl=WORLD5_LEVEL_TEMPLATE[lv-worldStart];
+      const pool = tpl.skill==='sentences' ? SENTENCE_BANK : WORLD_WORDS[5];
+      return {skill:tpl.skill, type:tpl.type, wordPool:pool};
+    }
     if(WORLD_WORDS[world] && lv>=worldStart && lv<=worldEnd){
       const tpl=WORLD_LEVEL_TEMPLATE[lv-worldStart];
       return {skill:tpl.skill, type:tpl.type, wordPool:WORLD_WORDS[world]};
@@ -1146,6 +1266,52 @@ const Engine={
       return {...base, heb:'סדרו את האותיות וכתבו את המילה הנכונה', stageType:'wordmask', stageValue:scrambled.toUpperCase(), say:item.w, pic:item.e,
         inputType:'text', maxLen:16, answer:item.w, check:v=>v.trim().toLowerCase()===item.w};
     }
+    if(skill==='sentences'){
+      const modes=SKILL_TYPES.sentences;
+      let m=mode||modes[Math.floor(Math.random()*modes.length)];
+      const pool = (wordPool && wordPool.length) ? wordPool : SENTENCE_BANK;
+      const it = (forceItem&&forceItem[0]==='X')? (SENTENCE_BANK.find(s=>'X_'+s.s===forceItem)||this.randSentence(pool)) : this.randSentence(pool);
+      const noun = WORDS.find(w=>w.w===it.noun) || {w:it.noun,e:''};
+      const base={skill,diff,itemId:'X_'+it.s,mode:m,prompt:''};
+      const idx=it.words.findIndex(w=>w.toLowerCase().replace(/[.,!?]/g,'')===it.noun);
+      const punct=(it.words[idx].match(/[.,!?]+$/)||[''])[0];
+      const blanked=it.words.map((w,i)=>i===idx?('___'+punct):w).join(' ');
+      if(m==='pickPic'){
+        const opts=this.sentenceNounOptions(noun,numOpts);
+        return {...base, heb:'?איזו תמונה מתאימה למשפט',
+          stageType:'word', stageValue:it.s, say:it.s,
+          options:opts.map(o=>({label:o.e,correct:o.w===noun.w,cls:'',speak:o.w})), answer:noun.w};
+      }
+      if(m==='pic2sentence'){
+        const opts=this.sentenceTextOptions(it,numOpts);
+        return {...base, heb:'?איזה משפט מתאים לתמונה',
+          stageType:'emoji', stageValue:noun.e, say:noun.w,
+          options:opts.map(o=>({label:o.s,correct:o.s===it.s,cls:'word en',speak:o.s})), answer:it.s};
+      }
+      if(m==='fillBlankMC'){
+        const distractors=this.sentenceNounOptions(noun,numOpts).filter(o=>o.w!==noun.w).slice(0,numOpts-1);
+        const opts=[noun,...distractors].sort(()=>Math.random()-0.5);
+        return {...base, heb:'השלימו את המילה החסרה',
+          stageType:'word', stageValue:blanked, say:it.s,
+          options:opts.map(o=>({label:o.w,correct:o.w===noun.w,cls:'word en',speak:o.w})), answer:noun.w};
+      }
+      if(m==='wordOrder'){
+        const scrambled=this.shuffleWords(it.words);
+        const wrongOrders=new Set(); let g=0;
+        while(wrongOrders.size<numOpts-1 && g++<20){ const s2=this.shuffleWords(it.words).join(' '); if(s2!==it.s) wrongOrders.add(s2); }
+        const opts=[{s:it.s,correct:true},...[...wrongOrders].map(s2=>({s:s2,correct:false}))].sort(()=>Math.random()-0.5);
+        return {...base, heb:'איזה מהמשפטים כתוב בסדר הנכון?',
+          stageType:'word', stageValue:scrambled.join(' '), say:it.s,
+          options:opts.map(o=>({label:o.s,correct:o.correct,cls:'word en',speak:o.s})), answer:it.s};
+      }
+      if(m==='fillBlankTyped'){
+        return {...base, heb:'השלימו את המילה החסרה במשפט (הקלידו)', stageType:'wordmask', stageValue:blanked, say:it.s, pic:noun.e, picWord:noun.w,
+          inputType:'text', maxLen:16, answer:it.noun, check:v=>v.trim().toLowerCase()===it.noun};
+      }
+      // typeSentencePic — capstone: type the whole sentence from a picture prompt, unscaffolded
+      return {...base, heb:'הקלידו את המשפט המתאים לתמונה', stageType:'emoji', stageValue:noun.e, say:noun.w,
+        inputType:'text', maxLen:40, answer:it.s, check:v=>this.normSentence(v)===this.normSentence(it.s)};
+    }
     // listening
     const modes=SKILL_TYPES.listening;
     let m=mode||modes[Math.floor(Math.random()*modes.length)];
@@ -1212,6 +1378,31 @@ const Engine={
     return set.sort(()=>Math.random()-0.5);
   },
   wordTextOptions(item,n){ return this.wordPicOptions(item,n); },
+  recentSentences:[],
+  randSentence(pool){
+    const src = pool && pool.length ? pool : SENTENCE_BANK;
+    let p=src.filter(s=>!this.recentSentences.includes(s.s));
+    if(!p.length) p=src;
+    const pick=p[Math.floor(Math.random()*p.length)];
+    this.recentSentences.push(pick.s); if(this.recentSentences.length>10) this.recentSentences.shift();
+    return pick;
+  },
+  sentenceNounOptions(item,n){
+    const set=[item]; const used=new Set([item.w]); let guard=0;
+    while(set.length<n && guard++<200){ const c=SENTENCE_NOUNS[Math.floor(Math.random()*SENTENCE_NOUNS.length)]; if(!used.has(c.w)){used.add(c.w);set.push(c);} }
+    return set.sort(()=>Math.random()-0.5);
+  },
+  sentenceTextOptions(it,n){
+    const set=[it]; const used=new Set([it.s]); let guard=0;
+    while(set.length<n && guard++<200){ const c=SENTENCE_BANK[Math.floor(Math.random()*SENTENCE_BANK.length)]; if(!used.has(c.s)){used.add(c.s);set.push(c);} }
+    return set.sort(()=>Math.random()-0.5);
+  },
+  shuffleWords(words){
+    let arr=words.slice(), g=0;
+    do{ arr=words.slice().sort(()=>Math.random()-0.5); }while(arr.join(' ')===words.join(' ') && words.length>1 && g++<10);
+    return arr;
+  },
+  normSentence(s){ return String(s).toLowerCase().replace(/[.,!?]/g,'').replace(/\s+/g,' ').trim(); },
 
   record(p,q,correct,fast){
     const s=q.skill;
@@ -1576,11 +1767,18 @@ const App={
     document.getElementById(ids.heb).textContent=q.heb||'';
     const stage=document.getElementById(ids.stage); stage.innerHTML='';
     if(q.stageType==='letter'){ const d=document.createElement('div'); d.className='bigq en'; d.textContent=q.stageValue; stage.appendChild(d); Speech.letter(q.say); }
-    else if(q.stageType==='emoji'){ const d=document.createElement('div'); d.className='bigq'; d.textContent=q.stageValue; stage.appendChild(d); Speech.say(q.say); }
+    else if(q.stageType==='emoji'){
+      const px=Pixel.render(q.say,'big');
+      if(px){ stage.appendChild(px); } else { const d=document.createElement('div'); d.className='bigq'; d.textContent=q.stageValue; stage.appendChild(d); }
+      Speech.say(q.say);
+    }
     else if(q.stageType==='word'){ const d=document.createElement('div'); d.className='bigq word en'; d.textContent=q.stageValue; stage.appendChild(d); }
     else if(q.stageType==='audio'){ const b=document.createElement('button'); b.className='speaker'; b.textContent='🔊'; b.onclick=()=>Speech.say(q.say); stage.appendChild(b); Speech.say(q.say); }
     else if(q.stageType==='wordmask'){
-      if(q.pic){ const pic=document.createElement('div'); pic.className='bigq'; pic.style.fontSize='3.4rem'; pic.textContent=q.pic; stage.appendChild(pic); }
+      if(q.pic){
+        const px=Pixel.render(q.picWord||q.say,'big');
+        if(px){ stage.appendChild(px); } else { const pic=document.createElement('div'); pic.className='bigq'; pic.style.fontSize='3.4rem'; pic.textContent=q.pic; stage.appendChild(pic); }
+      }
       const w=document.createElement('div'); w.className='bigq word en'; w.style.letterSpacing='6px'; w.textContent=q.stageValue; stage.appendChild(w);
     }
     if(q.stageType==='letter' || q.stageType==='emoji' || q.stageType==='wordmask' || q.stageType==='audio'){
@@ -1600,6 +1798,14 @@ const App={
         const w=document.createElement('div'); w.className='clueword en'; w.textContent=q.say; stage.appendChild(w); cb.remove(); };
       stage.appendChild(cb);
     }
+    // sound hint for reading-only questions (written word/sentence shown, nothing spoken automatically) —
+    // e.g. words:pickPic ("World 2 level 5" and its equivalents in every world), sentences:pickPic,
+    // sentences:fillBlankMC, sentences:wordOrder. Same cost as the clue above (fewer coins / weaker boss hit).
+    if(q.stageType==='word'){
+      const sb3=document.createElement('button'); sb3.className='clue'; sb3.textContent='🔊 רמז: השמיעו את המילה';
+      sb3.onclick=()=>{ App._clueUsed=true; Speech.say(q.say); sb3.remove(); };
+      stage.appendChild(sb3);
+    }
     const box=document.getElementById(ids.options); box.innerHTML='';
     if(q.inputType==='text'){
       box.className='options typebox';
@@ -1616,8 +1822,10 @@ const App={
     }
     box.className='options '+(q.options.length<=3?'g2':'g4');
     q.options.forEach(o=>{
-      const b=document.createElement('button'); b.className='opt '+(o.cls||'')+((q.skill==='letters'||q.skill==='sounds')?' en':'');
-      b.textContent=o.label; b.onclick=()=>onPick(b,o,q); box.appendChild(b);
+      const b=document.createElement('button'); b.className='opt '+(o.cls||'')+((q.skill==='letters'||q.skill==='sounds'||q.skill==='sentences')?' en':'');
+      const px=o.speak?Pixel.render(o.speak,'small'):null;
+      if(px){ b.appendChild(px); } else { b.textContent=o.label; }
+      b.onclick=()=>onPick(b,o,q); box.appendChild(b);
     });
   },
   renderQuestion(){
@@ -1749,7 +1957,7 @@ const App={
   /* ---------- WORLDS + BOSS BATTLES ---------- */
   goLevel(lv){ if(lv%ZONE_LEN===0) this.startBoss(lv); else this.startLevel(lv); },
   bossEmoji(world){ const a=['👾','🐉','👹','🤖','👺','🦖','💀','🐲','👽','🦂']; return a[(world-1)%a.length]; },
-  sectionName(z){ return ['אותיות וצלילים','מילים ראשונות','אוצר מילים','מילים נוספות','אלופי המילים','אתגר האלופים'][z-1] || ('אתגר '+z); },
+  sectionName(z){ return ['אותיות וצלילים','מילים ראשונות','אוצר מילים','מילים נוספות','משפטים פשוטים','אתגר האלופים'][z-1] || ('אתגר '+z); },
 
   startBoss(lv){
     const world=lv/ZONE_LEN;
