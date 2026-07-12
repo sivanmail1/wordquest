@@ -387,11 +387,22 @@
       <div class="power" title="לבבות בקרבות בוס (כולל בונוס קבוע מניצחונות קודמים)">❤️ <span id="heartsN">3</span></div>
       <div class="power" title="כוח פגיעה בקרב">⚔️ <span id="powerN">0</span></div>
       <div class="coins">🪙 <span id="coinN">0</span></div>
+      <button class="iconbtn" id="achieveBtn" title="מחסן הישגים">🏅</button>
       <button class="iconbtn" id="leaderBtn" title="טבלת אלופים">🏆</button>
       <button class="iconbtn" id="shopBtn" title="חנות">🛒</button>
       <button class="iconbtn" id="switchBtn" title="החלף שחקן">🔁</button>
     </div>
     <div class="map"><div class="path" id="pathEl"></div></div>
+  </section>
+
+  <!-- ACHIEVEMENTS ("מחסן הישגים") -->
+  <section id="s-achieve" class="screen">
+    <div class="dash">
+      <button class="btn ghost backbtn" id="achieveBack">‹ חזרה</button>
+      <h1 style="margin-top:0;text-align:center">🏅 מחסן הישגים</h1>
+      <p class="hint" style="text-align:center">אספו תגים על ידי משחק, למידה וניצחונות!</p>
+      <div class="shopgrid" id="achieveGrid"></div>
+    </div>
   </section>
 
   <!-- SHOP -->
@@ -633,7 +644,7 @@
 "use strict";
 /* Version: semver major.minor.patch — bump the patch for each small change, minor for a
    meaningful feature, major for a big new phase (e.g. the multi-account/auth rewrite). */
-const VERSION='1.7.0';
+const VERSION='1.7.1';
 /* ---- CLOUD SYNC CONFIG ----
    Both are safe to leave in this file — the anon/publishable key is meant to be
    public; real protection comes from the per-family "sync code" each device enters. */
@@ -647,6 +658,22 @@ const BOSS_TARGET_HITS=55;   // roughly how many correct answers a fresh-geared 
                               // fight as the family's economy grows, not get relatively easier.
 const DAILY_GOAL=20; // correct answers needed in a day to complete the daily goal
 const DAILY_BONUS=25; // coin reward for completing the daily goal (once per day)
+// ---------- ACHIEVEMENTS ("מחסן הישגים") — 10 fixed badges, checked in App.checkAchievements ----------
+// check(p) reads whatever player state it needs; referencing Engine/App/Shop/ZONE_LEN here is fine
+// even though they're defined further down the file — these are only CALLED later, well after
+// the whole script (and its top-level const bindings) has finished loading.
+const ACHIEVEMENTS = [
+  {id:'coins1000', icon:'🪙', name:'אלף מטבעות',      desc:'צברו 1,000 מטבעות במצטבר (גם אם הוצאתם חלק)', check:p=>(p.lifetimeCoins||0)>=1000},
+  {id:'coins5000', icon:'💰', name:'עשירים!',          desc:'צברו 5,000 מטבעות במצטבר',                    check:p=>(p.lifetimeCoins||0)>=5000},
+  {id:'world1',    icon:'🗺️', name:'עולם ראשון',       desc:'נצחו את הבוס הראשון',                          check:p=>p.maxLevel>ZONE_LEN},
+  {id:'world5',    icon:'🐲', name:'חמישה עולמות',     desc:'נצחו את הבוס של עולם 5',                       check:p=>p.maxLevel>5*ZONE_LEN},
+  {id:'allStars',  icon:'⭐', name:'כוכב עולה',        desc:'3 כוכבים בכל השלבים של עולם שלם אחד',          check:p=>App.hasFullStarZone(p)},
+  {id:'flawless',  icon:'💥', name:'ניצחון מושלם',     desc:'נצחו קרב בוס בלי לאבד אף לב',                  check:p=>!!p.flawlessBossWin},
+  {id:'streak7',   icon:'🔥', name:'רצף שבועי',        desc:'שמרו על רצף יעד יומי של 7 ימים',               check:p=>(p.streakDays||0)>=7},
+  {id:'streak30',  icon:'🔥', name:'רצף חודשי',        desc:'שמרו על רצף יעד יומי של 30 ימים',              check:p=>(p.streakDays||0)>=30},
+  {id:'letters100',icon:'🔤', name:'שליטה באותיות',    desc:'100% שליטה בתחום האותיות',                     check:p=>Engine.masteryPct(p,'letters')>=100},
+  {id:'words100',  icon:'📚', name:'שליטה במילים',     desc:'100% שליטה בתחום המילים',                      check:p=>Engine.masteryPct(p,'words')>=100}
+];
 /* ============================================================
    WordQuest — Phase 1
    Adaptive English game for Aviv & Shahar (Hebrew UI, English content)
@@ -667,18 +694,22 @@ const Store = {
   key:'wordquest_v1',
   ns:null,
   data:null,
-  load(ns){
+  // includeTester: only Sivan's own admin account (or fully-offline/no-cloud legacy mode) gets
+  // the QA "tester" profile — every OTHER family signing up should see only their own kids'
+  // slots, not a leftover testing profile that was only ever meant for one household.
+  load(ns, includeTester){
     ns = ns || 'local';
     this.ns = ns;
     this.key = (ns==='local') ? this.baseKey : (this.baseKey+'_'+ns);
     try{ this.data = JSON.parse(localStorage.getItem(this.key)) || null; }catch(e){ this.data=null; }
-    if(!this.data) this.data = this.fresh();
+    if(!this.data) this.data = this.fresh(includeTester);
     // migration: cloud-sync timestamp (used to decide which device's save is newer)
     if(this.data.updatedAt===undefined) this.data.updatedAt=0;
     // migration: bug reports list for older saves
     if(!this.data.bugs) this.data.bugs=[];
-    // migration: make sure the tester profile exists even on older saves
-    if(!this.data.players.tester) this.data.players.tester = this.freshPlayer('Tester','בודק (הורה)','🧪');
+    // migration: make sure the tester profile exists on older saves — but ONLY for the admin
+    // account; other families' older saves are left alone (no tester profile added).
+    if(includeTester && !this.data.players.tester) this.data.players.tester = this.freshPlayer('Tester','בודק (הורה)','🧪');
     // migration: shop fields for older saves
     Object.values(this.data.players).forEach(pl=>{
       if(pl.ability && pl.ability.sentences===undefined) pl.ability.sentences=0; // migration: World 5 sentences skill
@@ -692,21 +723,25 @@ const Store = {
       if(pl.lastGoalDate===undefined) pl.lastGoalDate=null;
       if(pl.updatedAt===undefined) pl.updatedAt=0;
       if(pl.bonusHearts===undefined) pl.bonusHearts=0; // migration: permanent boss-win heart bonus
+      if(pl.lifetimeCoins===undefined) pl.lifetimeCoins=pl.coins||0; // migration: best guess — current balance as a floor
+      if(pl.flawlessBossWin===undefined) pl.flawlessBossWin=false;
+      if(!pl.achievements) pl.achievements=[];
     });
     return this.data;
   },
-  fresh(){
+  fresh(includeTester){
     // NOTE: default profile names are generic placeholders ("שחקן 1"/"שחקן 2"), not real kids'
     // names — this template is now used by every new family that signs up, not just one. Parents
     // rename these to their own kids' names from the parent dashboard (⚙️ → "שינוי שם שחקן").
+    const players={
+      p1: this.freshPlayer('Player 1','שחקן 1','🥷'),
+      p2: this.freshPlayer('Player 2','שחקן 2','🦖')
+    };
+    if(includeTester) players.tester = this.freshPlayer('Tester','בודק (הורה)','🤖');
     return {
       updatedAt:0,             // bumped on every save(); cloud sync uses this to pick the newer copy
       settings:{ pin:'1234' },
-      players:{
-        p1: this.freshPlayer('Player 1','שחקן 1','🥷'),
-        p2: this.freshPlayer('Player 2','שחקן 2','🦖'),
-        tester:this.freshPlayer('Tester','בודק (הורה)','🤖')
-      },
+      players,
       telemetry:{ items:{} },  // itemId -> {shown,correct,wrong:{answer:count}}
       bugs:[]                  // kid-reported bugs: {id,ts,player,playerName,screen,level,question,note}
     };
@@ -723,7 +758,10 @@ const Store = {
       gear:[], equippedGear:'',
       potions:{dmg:0,shield:0,crit:0},                        // consumables for boss battles
       daily:{date:null,correct:0,met:false}, lastGoalDate:null, // daily goal + streak (Duolingo-style)
-      bonusHearts:0                                            // permanent +1 per boss win — carries into every future boss fight
+      bonusHearts:0,                                           // permanent +1 per boss win — carries into every future boss fight
+      lifetimeCoins:0,                                         // cumulative coins ever earned (never decreases on spend) — for coin-milestone badges
+      flawlessBossWin:false,                                   // ever won a boss without losing a heart — for the "ניצחון מושלם" badge
+      achievements:[]                                          // [{id, ts}] — permanently earned badges, see ACHIEVEMENTS/checkAchievements
     };
   },
   save(playerId){
@@ -731,7 +769,12 @@ const Store = {
     // stamp the specific player this change belongs to (falls back to whoever is currently playing)
     // so cross-device sync can merge per-player instead of overwriting one child's progress with the other's.
     const pid = playerId || (typeof App!=='undefined' ? App.cur : null);
-    if(pid && this.data.players[pid]) this.data.players[pid].updatedAt = this.data.updatedAt;
+    if(pid && this.data.players[pid]){
+      this.data.players[pid].updatedAt = this.data.updatedAt;
+      // check for newly-earned badges on every save — cheap (10 simple checks) and guarantees
+      // achievements are caught right after whatever action might have triggered one.
+      if(typeof App!=='undefined' && App.checkAchievements) App.checkAchievements(this.data.players[pid]);
+    }
     this.saveLocalOnly();
     if(typeof Sync!=='undefined') Sync.queuePush();
   },
@@ -1630,39 +1673,50 @@ const Tele={
 
 /* ---------- SHOP (coin sink: characters, gear, backgrounds) ---------- */
 const Shop={
-  // COOL characters for 9-10 y/o boys — ninjas, robots, beasts, monsters, dragons
+  // COOL characters for 9-10 y/o boys — ninjas, robots, beasts, monsters, dragons.
+  // unlockWorld: the world the player must have REACHED (not necessarily beaten) before an item
+  // becomes purchasable — retroactively gates the pricier existing items, and gates the new
+  // "prestige" items added below at worlds 4/7/10 (i.e. every 3 worlds), per Sivan's request.
   avatars:[
-    {e:'🥷',price:0},{e:'🦖',price:0},                                   // free starters
-    {e:'🤖',price:250},{e:'👾',price:250},{e:'👽',price:300},{e:'🐺',price:300},
-    {e:'🦅',price:320},{e:'🦈',price:350},{e:'🐍',price:300},{e:'🦂',price:350},
-    {e:'🕷️',price:320},{e:'🦇',price:340},{e:'🦍',price:420},{e:'🐆',price:420},
-    {e:'🧙',price:500},{e:'🦸',price:600},{e:'🧛',price:600},{e:'🧟',price:650},
-    {e:'👹',price:700},{e:'👺',price:700},{e:'🤡',price:500},{e:'💀',price:900},
-    {e:'☠️',price:1000},{e:'🐉',price:1500}                              // legendary
+    {e:'🥷',price:0,unlockWorld:1},{e:'🦖',price:0,unlockWorld:1},          // free starters
+    {e:'🤖',price:250,unlockWorld:1},{e:'👾',price:250,unlockWorld:1},{e:'👽',price:300,unlockWorld:1},{e:'🐺',price:300,unlockWorld:1},
+    {e:'🦅',price:320,unlockWorld:1},{e:'🦈',price:350,unlockWorld:1},{e:'🐍',price:300,unlockWorld:1},{e:'🦂',price:350,unlockWorld:1},
+    {e:'🕷️',price:320,unlockWorld:1},{e:'🦇',price:340,unlockWorld:1},{e:'🦍',price:420,unlockWorld:4},{e:'🐆',price:420,unlockWorld:4},
+    {e:'🧙',price:500,unlockWorld:4},{e:'🦸',price:600,unlockWorld:4},{e:'🧛',price:600,unlockWorld:4},{e:'🧟',price:650,unlockWorld:7},
+    {e:'👹',price:700,unlockWorld:7},{e:'👺',price:700,unlockWorld:7},{e:'🤡',price:500,unlockWorld:4},{e:'💀',price:900,unlockWorld:7},
+    {e:'☠️',price:1000,unlockWorld:10},{e:'🐉',price:1500,unlockWorld:10},  // legendary
+    // new prestige tier — unlocked every 3 worlds, per Sivan's request
+    {e:'🦄',price:1100,unlockWorld:4},{e:'🐙',price:1700,unlockWorld:7},{e:'🦁',price:2200,unlockWorld:10}
   ],
   // GEAR: weapons / props / clothing — equip one; each adds POWER; owning all builds a collection
   gear:[
-    {e:'🎩',price:150,power:5},{e:'🕶️',price:200,power:6},{e:'🎧',price:200,power:6},
-    {e:'🧢',price:180,power:5},{e:'🥽',price:220,power:7},
-    {e:'🗡️',price:250,power:12},{e:'🔪',price:220,power:10},{e:'🪓',price:300,power:14},
-    {e:'🏹',price:350,power:16},{e:'🛡️',price:350,power:16},{e:'🔫',price:400,power:18},
-    {e:'💣',price:300,power:14},{e:'🔨',price:280,power:12},{e:'🥊',price:260,power:12},
-    {e:'🪄',price:500,power:22},{e:'🔥',price:550,power:24},{e:'⚡',price:600,power:26},
-    {e:'🚀',price:800,power:35},{e:'👑',price:900,power:40},{e:'💎',price:1000,power:45},
-    {e:'🏆',price:1200,power:50},{e:'🔱',price:1500,power:60}
+    {e:'🎩',price:150,power:5,unlockWorld:1},{e:'🕶️',price:200,power:6,unlockWorld:1},{e:'🎧',price:200,power:6,unlockWorld:1},
+    {e:'🧢',price:180,power:5,unlockWorld:1},{e:'🥽',price:220,power:7,unlockWorld:1},
+    {e:'🗡️',price:250,power:12,unlockWorld:1},{e:'🔪',price:220,power:10,unlockWorld:1},{e:'🪓',price:300,power:14,unlockWorld:1},
+    {e:'🏹',price:350,power:16,unlockWorld:1},{e:'🛡️',price:350,power:16,unlockWorld:1},{e:'🔫',price:400,power:18,unlockWorld:4},
+    {e:'💣',price:300,power:14,unlockWorld:1},{e:'🔨',price:280,power:12,unlockWorld:1},{e:'🥊',price:260,power:12,unlockWorld:1},
+    {e:'🪄',price:500,power:22,unlockWorld:4},{e:'🔥',price:550,power:24,unlockWorld:4},{e:'⚡',price:600,power:26,unlockWorld:4},
+    {e:'🚀',price:800,power:35,unlockWorld:7},{e:'👑',price:900,power:40,unlockWorld:7},{e:'💎',price:1000,power:45,unlockWorld:10},
+    {e:'🏆',price:1200,power:50,unlockWorld:10},{e:'🔱',price:1500,power:60,unlockWorld:10},
+    // new prestige tier — unlocked every 3 worlds, per Sivan's request
+    {e:'⚔️',price:1300,power:55,unlockWorld:4},{e:'🛸',price:1900,power:75,unlockWorld:7},{e:'🧨',price:2400,power:95,unlockWorld:10}
   ],
   // BACKGROUNDS: richer, layered gradients (starfields, lava, neon) — not flat colors
   themes:[
-    {id:'default',name:'קלאסי',price:0,css:'linear-gradient(160deg,#22d3ee 0%,#3b82f6 42%,#8b5cf6 100%)'},
-    {id:'ocean', name:'מעמקי הים',price:250,css:'radial-gradient(circle at 50% -10%,#22d3ee,transparent 45%),linear-gradient(180deg,#0891b2,#0e7490,#083344)'},
-    {id:'sunset',name:'שקיעה',price:300,css:'linear-gradient(160deg,#fb7185,#f59e0b 45%,#7c3aed)'},
-    {id:'forest',name:'יער קסום',price:300,css:'radial-gradient(circle at 80% 10%,#a3e635,transparent 40%),linear-gradient(160deg,#22c55e,#15803d,#052e16)'},
-    {id:'aurora',name:'זוהר הקוטב',price:450,css:'linear-gradient(160deg,#00c9ff,#92fe9d 45%,#7b2ff7)'},
-    {id:'lava',  name:'לבה',price:500,css:'radial-gradient(circle at 50% 120%,#fde047,#f97316 30%,#ef4444 55%,#7f1d1d 85%)'},
-    {id:'neon',  name:'ניאון',price:550,css:'linear-gradient(135deg,#00f5d4,#7b2ff7 50%,#f107a3)'},
-    {id:'cyber', name:'סייבר',price:600,css:'repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 1px,transparent 1px 22px),linear-gradient(135deg,#0ea5e9,#4f46e5,#8b5cf6)'},
-    {id:'galaxy',name:'גלקסיה',price:750,css:'radial-gradient(circle at 30% 30%,#a855f7,transparent 55%),radial-gradient(circle at 70% 75%,#3b82f6,transparent 50%),linear-gradient(#0b1026,#111827)'},
-    {id:'space', name:'חלל עמוק',price:900,css:'radial-gradient(1.5px 1.5px at 20% 30%,#fff,transparent),radial-gradient(1.5px 1.5px at 65% 65%,#fff,transparent),radial-gradient(1px 1px at 80% 20%,#fff,transparent),radial-gradient(1px 1px at 35% 80%,#fff,transparent),radial-gradient(2px 2px at 75% 42%,#fff,transparent),radial-gradient(1px 1px at 50% 15%,#fff,transparent),linear-gradient(160deg,#0b1026,#1e1b4b 60%,#3b0764)'}
+    {id:'default',name:'קלאסי',price:0,unlockWorld:1,css:'linear-gradient(160deg,#22d3ee 0%,#3b82f6 42%,#8b5cf6 100%)'},
+    {id:'ocean', name:'מעמקי הים',price:250,unlockWorld:1,css:'radial-gradient(circle at 50% -10%,#22d3ee,transparent 45%),linear-gradient(180deg,#0891b2,#0e7490,#083344)'},
+    {id:'sunset',name:'שקיעה',price:300,unlockWorld:1,css:'linear-gradient(160deg,#fb7185,#f59e0b 45%,#7c3aed)'},
+    {id:'forest',name:'יער קסום',price:300,unlockWorld:1,css:'radial-gradient(circle at 80% 10%,#a3e635,transparent 40%),linear-gradient(160deg,#22c55e,#15803d,#052e16)'},
+    {id:'aurora',name:'זוהר הקוטב',price:450,unlockWorld:4,css:'linear-gradient(160deg,#00c9ff,#92fe9d 45%,#7b2ff7)'},
+    {id:'lava',  name:'לבה',price:500,unlockWorld:4,css:'radial-gradient(circle at 50% 120%,#fde047,#f97316 30%,#ef4444 55%,#7f1d1d 85%)'},
+    {id:'neon',  name:'ניאון',price:550,unlockWorld:4,css:'linear-gradient(135deg,#00f5d4,#7b2ff7 50%,#f107a3)'},
+    {id:'cyber', name:'סייבר',price:600,unlockWorld:4,css:'repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 1px,transparent 1px 22px),linear-gradient(135deg,#0ea5e9,#4f46e5,#8b5cf6)'},
+    {id:'galaxy',name:'גלקסיה',price:750,unlockWorld:7,css:'radial-gradient(circle at 30% 30%,#a855f7,transparent 55%),radial-gradient(circle at 70% 75%,#3b82f6,transparent 50%),linear-gradient(#0b1026,#111827)'},
+    {id:'space', name:'חלל עמוק',price:900,unlockWorld:7,css:'radial-gradient(1.5px 1.5px at 20% 30%,#fff,transparent),radial-gradient(1.5px 1.5px at 65% 65%,#fff,transparent),radial-gradient(1px 1px at 80% 20%,#fff,transparent),radial-gradient(1px 1px at 35% 80%,#fff,transparent),radial-gradient(2px 2px at 75% 42%,#fff,transparent),radial-gradient(1px 1px at 50% 15%,#fff,transparent),linear-gradient(160deg,#0b1026,#1e1b4b 60%,#3b0764)'},
+    // new prestige tier — unlocked every 3 worlds, per Sivan's request
+    {id:'phoenix',name:'עוף החול',price:1000,unlockWorld:4,css:'radial-gradient(circle at 50% 100%,#fde047,#f97316 35%,#7c2d12 75%),linear-gradient(160deg,#450a0a,#1c0a0a)'},
+    {id:'nebula', name:'ערפילית',price:1500,unlockWorld:7,css:'radial-gradient(circle at 25% 25%,#f472b6,transparent 50%),radial-gradient(circle at 75% 70%,#38bdf8,transparent 50%),linear-gradient(#0f0a1e,#1e1033)'},
+    {id:'infinity',name:'אינסוף',price:2000,unlockWorld:10,css:'conic-gradient(from 180deg,#7c3aed,#db2777,#f59e0b,#22d3ee,#7c3aed)'}
   ],
   // POTIONS: consumables that help win the (hard) boss battles
   potions:[
@@ -1675,8 +1729,14 @@ const Shop={
   catalog(kind){ return kind==='avatar'?this.avatars : kind==='gear'?this.gear : this.themes; },
   themeCss(id){ const t=this.themes.find(x=>x.id===id); return t?t.css:this.themes[0].css; },
   owns(p,kind,key){ return this.list(p,kind).includes(key); },
-  buy(p,kind,key,price){
+  // "world reached" for shop-unlock purposes — how far a player has to progress before pricier/
+  // prestige items become purchasable. Uses maxLevel (the next level available), not "worlds
+  // fully beaten", so an item tagged unlockWorld:4 opens up the moment a player STARTS world 4
+  // (i.e. right after beating world 3's boss), matching "every 3 worlds unlocks new things".
+  currentWorld(p){ return Math.max(1, Math.ceil((p.maxLevel||1)/ZONE_LEN)); },
+  buy(p,kind,key,price,unlockWorld){
     if(this.owns(p,kind,key)) return 'owned';
+    if(unlockWorld && this.currentWorld(p)<unlockWorld) return 'locked';
     if(p.coins<price) return 'poor';
     p.coins-=price; this.list(p,kind).push(key); return 'ok';
   },
@@ -1708,7 +1768,9 @@ const App={
     }
     // Store is namespaced per account: Auth.user.id when signed in, or the legacy 'local' key
     // when cloud sync isn't configured (fully offline mode, same as before accounts existed).
-    Store.load(Auth.user ? Auth.user.id : 'local');
+    // The QA "tester" profile only ever gets created for the admin account (or fully-offline
+    // mode, matching this app's original single-family behavior) — see Store.fresh/load.
+    Store.load(Auth.user ? Auth.user.id : 'local', !Sync.enabled || Auth.isAdmin);
     this.afterAuthReady();
   },
   // called once we know whether we're logged in (or cloud sync isn't configured at all,
@@ -1784,7 +1846,7 @@ const App={
       // Duolingo-style streak: only grows if yesterday's goal was also met; otherwise restarts at 1
       p.streakDays = (p.lastGoalDate===this.yesterday()) ? p.streakDays+1 : 1;
       p.lastGoalDate=p.daily.date;
-      p.coins+=DAILY_BONUS;
+      this.addCoins(p,DAILY_BONUS);
       Store.save();
       this.celebrateDailyGoal(DAILY_BONUS,p.streakDays);
     }
@@ -1861,30 +1923,35 @@ const App={
       });
       return;
     }
-    const items = cat==='avatar' ? Shop.avatars.map(a=>({kind:'avatar',key:a.e,price:a.price}))
-      : cat==='gear' ? Shop.gear.map(g=>({kind:'gear',key:g.e,price:g.price,power:g.power}))
-      : Shop.themes.map(t=>({kind:'theme',key:t.id,price:t.price,name:t.name,css:t.css}));
+    const items = cat==='avatar' ? Shop.avatars.map(a=>({kind:'avatar',key:a.e,price:a.price,unlockWorld:a.unlockWorld}))
+      : cat==='gear' ? Shop.gear.map(g=>({kind:'gear',key:g.e,price:g.price,power:g.power,unlockWorld:g.unlockWorld}))
+      : Shop.themes.map(t=>({kind:'theme',key:t.id,price:t.price,name:t.name,css:t.css,unlockWorld:t.unlockWorld}));
     items.forEach(it=>{
       const owned=Shop.owns(p,it.kind,it.key);
       const equipped = it.kind==='avatar' ? p.ava===it.key
         : it.kind==='gear' ? p.equippedGear===it.key
         : (p.theme||'default')===it.key;
-      const card=document.createElement('div'); card.className='shopitem';
+      // locked = not yet reached the world this item unlocks at — hidden behind a 🔒, not
+      // purchasable, regardless of coins on hand (see Shop.buy's own unlockWorld check too).
+      const locked = !owned && it.unlockWorld && Shop.currentWorld(p)<it.unlockWorld;
+      const card=document.createElement('div'); card.className='shopitem'; card.style.opacity=locked?'.55':'1';
       const visual = it.kind==='theme'
         ? '<div class="themeprev" style="background:'+it.css+'"></div><div class="nm2">'+it.name+'</div>'
-        : '<div class="ic">'+it.key+'</div>'+
-          (it.kind==='gear' ? '<div class="pw">⚔️ '+it.power+'</div>'
+        : '<div class="ic">'+(locked?'🔒':it.key)+'</div>'+
+          (locked ? '' : it.kind==='gear' ? '<div class="pw">⚔️ '+it.power+'</div>'
            : it.kind==='avatar' ? '<div class="pw">⚔️ '+Shop.avatarAttack(it.key)+'</div>' : '');
       let btnHtml;
-      if(equipped) btnHtml='<button class="equipped" data-act="equip">'+(it.kind==='gear'?'הסר':'מוגדר ✓')+'</button>';
+      if(locked) btnHtml='<div class="pr" style="color:#94a3b8">🔒 נפתח בעולם '+it.unlockWorld+'</div>';
+      else if(equipped) btnHtml='<button class="equipped" data-act="equip">'+(it.kind==='gear'?'הסר':'מוגדר ✓')+'</button>';
       else if(owned) btnHtml='<button class="owned" data-act="equip">בחר</button>';
       else btnHtml='<div class="pr">🪙 '+it.price+'</div><button data-act="buy">קנה</button>';
       card.innerHTML=visual+btnHtml;
       const b=card.querySelector('button[data-act]');
       if(b) b.onclick=()=>{
         if(b.dataset.act==='buy'){
-          const r=Shop.buy(p,it.kind,it.key,it.price);
+          const r=Shop.buy(p,it.kind,it.key,it.price,it.unlockWorld);
           if(r==='poor'){ this.toast('אין מספיק מטבעות 🪙',true); return; }
+          if(r==='locked'){ this.toast('עדיין נעול 🔒',true); return; }
           Store.save(); this.equip(it);
         } else { this.equip(it); }
       };
@@ -2143,7 +2210,7 @@ const App={
       coins=base+fastB+streakB;
       if(fastB) bonus+=' ⚡מהיר'; if(streakB) bonus+=' 🔥רצף';
     }
-    p.coins+=coins; ex.gained+=coins;
+    this.addCoins(p,coins); ex.gained+=coins;
     document.getElementById('coinN2').textContent=p.coins;
     this.flyCoins(btn,coins); this.toast(this.praise()+' +'+coins+' 🪙'+bonus,false);
     // (no re-speak of the word/letter here — it already played when the question appeared;
@@ -2167,7 +2234,7 @@ const App={
     const passed = stars>=2;                        // need >=6/8 first-try to advance
     p.stars[ex.lv]=Math.max(p.stars[ex.lv]||0, stars);
     if(passed && ex.lv>=p.maxLevel){ p.maxLevel=ex.lv+1; }
-    const bonus= stars===3?15 : stars===2?8 : 0; p.coins+=bonus; ex.gained+=bonus;
+    const bonus= stars===3?15 : stars===2?8 : 0; this.addCoins(p,bonus); ex.gained+=bonus;
     const d=this.today(); const h=p.history.find(x=>x.date===d);
     if(h){ h.avg=Engine.avgMastery(p); h.coins=p.coins; }
     Store.save();
@@ -2194,6 +2261,47 @@ const App={
     const attack=Shop.attack(p);
     const score=reached*10 + bosses*50 + stars*4;
     return {lvl,reached,zone,bosses,stars,attack,coins:p.coins,score};
+  },
+  // single choke point for every coin gain — keeps lifetimeCoins (used by coin-milestone
+  // badges) accurate even though p.coins itself goes up AND down as the player spends in the shop.
+  addCoins(p,amount){ if(!amount) return; p.coins+=amount; p.lifetimeCoins=(p.lifetimeCoins||0)+amount; },
+
+  /* ---------- ACHIEVEMENTS ("מחסן הישגים") ----------
+     10 fixed badges, permanently unlocked (once earned, never re-locked even if the underlying
+     stat could otherwise drop — e.g. a broken streak). Checked from Store.save() on every save,
+     so a badge is caught right after whatever action earned it. */
+  hasFullStarZone(p){
+    const zonesDone=Math.floor((p.maxLevel-1)/ZONE_LEN); // number of bosses already beaten
+    for(let z=1; z<=zonesDone; z++){
+      let full=true;
+      for(let lv=(z-1)*ZONE_LEN+1; lv<z*ZONE_LEN; lv++){ if((p.stars[lv]||0)<3){ full=false; break; } }
+      if(full) return true;
+    }
+    return false;
+  },
+  checkAchievements(p){
+    if(!p) return;
+    if(!p.achievements) p.achievements=[];
+    const have=new Set(p.achievements.map(a=>a.id));
+    ACHIEVEMENTS.forEach(a=>{
+      if(have.has(a.id)) return;
+      if(a.check(p)){ p.achievements.push({id:a.id, ts:Date.now()}); this.toast('🏅 הישג חדש: '+a.name+'!', false); }
+    });
+  },
+  openAchievements(){ const p=Store.player(this.cur); this.checkAchievements(p); this.renderAchievements(p); this.show('s-achieve'); },
+  renderAchievements(p){
+    p = p || Store.player(this.cur);
+    const have={}; (p.achievements||[]).forEach(a=>have[a.id]=a.ts);
+    const grid=document.getElementById('achieveGrid'); grid.innerHTML='';
+    ACHIEVEMENTS.forEach(a=>{
+      const unlocked=!!have[a.id];
+      const card=document.createElement('div'); card.className='shopitem'; card.style.opacity=unlocked?'1':'.5';
+      card.innerHTML = '<div class="ic">'+(unlocked?a.icon:'🔒')+'</div><div class="nm2">'+a.name+'</div>'+
+        '<div class="pd" style="font-size:.72rem;color:#64748b;margin-top:4px">'+a.desc+'</div>'+
+        (unlocked ? '<div class="pc" style="font-size:.78rem;color:#16a34a;font-weight:800;margin-top:6px">✓ הושג · '+new Date(have[a.id]).toLocaleDateString('he-IL')+'</div>'
+                  : '<div class="pc" style="font-size:.78rem;color:#94a3b8;font-weight:800;margin-top:6px">נעול</div>');
+      grid.appendChild(card);
+    });
   },
   async openLeader(){ this.show('s-leader'); await this.renderLeader(); },
   // shows the GLOBAL leaderboard (all families) when cloud sync is configured and reachable,
@@ -2496,8 +2604,9 @@ const App={
   bossWin(){
     const bs=this.boss, p=Store.player(this.cur);
     if(bs.lv>=p.maxLevel) p.maxLevel=bs.lv+1;   // unlock next world
-    const reward=40+bs.world*20; p.coins+=reward;
+    const reward=40+bs.world*20; this.addCoins(p,reward);
     p.bonusHearts=(p.bonusHearts||0)+1;   // permanent +1 heart, carried into every future boss fight
+    if(bs.hearts===bs.maxHearts) p.flawlessBossWin=true;   // no hearts lost the whole battle — for the "ניצחון מושלם" badge
     Store.save();
     document.getElementById('bossResEmoji').textContent='🏆';
     document.getElementById('bossResTitle').textContent='ניצחת את הבוס!';
@@ -2532,6 +2641,8 @@ const App={
     document.getElementById('parentGear').onclick=()=>{ document.getElementById('pinInput').value=''; this.show('s-pin'); };
     document.getElementById('switchBtn').onclick=()=>{ this.stopTimer(); this.cur=null; this.applyTheme('default'); this.renderProfiles(); this.show('s-profile'); };
     document.getElementById('shopBtn').onclick=()=>this.openShop();
+    document.getElementById('achieveBtn').onclick=()=>this.openAchievements();
+    document.getElementById('achieveBack').onclick=()=>{ this.renderMap(); this.show('s-map'); };
     document.getElementById('leaderBtn').onclick=()=>this.openLeader();
     document.getElementById('leaderBtnP').onclick=()=>this.openLeader();
     document.getElementById('leaderBack').onclick=()=>{ if(this.cur){ this.renderMap(); this.show('s-map'); } else { this.renderProfiles(); this.show('s-profile'); } };
@@ -2610,8 +2721,9 @@ const App={
       return;
     }
     await Auth.checkAdmin();
-    // load THIS account's own local cache (never the shared/legacy key) before showing anything
-    Store.load(Auth.user ? Auth.user.id : 'local');
+    // load THIS account's own local cache (never the shared/legacy key) before showing anything.
+    // Tester profile: admin account (or offline mode) only — see Store.fresh/load.
+    Store.load(Auth.user ? Auth.user.id : 'local', !Sync.enabled || Auth.isAdmin);
     this.afterAuthReady();
   },
   async doForgot(){
