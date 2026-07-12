@@ -95,6 +95,7 @@
   .bigq.en{background:#fff;color:#1e40af;border-radius:26px;padding:6px 40px;display:inline-block;
     box-shadow:0 8px 0 rgba(0,0,0,.14);font-weight:900}
   .bigq.word{font-size:3.4rem;font-weight:900;letter-spacing:2px}
+  .nocopy{user-select:none;-webkit-user-select:none;-moz-user-select:none}
   .pixicon{display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);
     width:120px;height:120px;margin:6px auto;border-radius:10px;overflow:hidden;box-shadow:0 6px 0 rgba(0,0,0,.14)}
   .pixicon span{width:100%;height:100%;background:transparent}
@@ -318,15 +319,62 @@
 <body>
 <div id="app">
 
+  <!-- LOGIN / SIGN UP (real Supabase Auth account — one account per family) -->
+  <section id="s-auth" class="screen center">
+    <div class="card" style="max-width:380px;width:100%;margin:auto">
+      <h1 style="text-align:center;margin-top:0">WordQuest</h1>
+      <p class="sub" style="text-align:center">כניסה / הרשמה למשפחה</p>
+      <div class="skill">
+        <label class="lab">אימייל</label>
+        <input id="authEmail" type="email" autocomplete="email" placeholder="parent@example.com"
+          style="width:100%;padding:12px;border-radius:12px;border:2px solid #cbd5e1;font-size:1.05rem;direction:ltr">
+      </div>
+      <div class="skill">
+        <label class="lab">סיסמה</label>
+        <input id="authPassword" type="password" autocomplete="current-password" placeholder="לפחות 6 תווים"
+          style="width:100%;padding:12px;border-radius:12px;border:2px solid #cbd5e1;font-size:1.05rem;direction:ltr">
+      </div>
+      <p id="authErr" style="min-height:1.2em;color:#ef4444;font-weight:700;font-size:.9rem;margin:6px 0"></p>
+      <div class="row" style="justify-content:center;gap:10px;margin-top:6px">
+        <button class="btn big gold" id="authLogin">כניסה</button>
+        <button class="btn" id="authSignup">הרשמה</button>
+      </div>
+      <p style="text-align:center;margin-top:14px">
+        <a href="#" id="authForgot" style="color:#2563eb;font-weight:700;text-decoration:none">שכחתי סיסמה</a>
+      </p>
+      <p class="hint" style="text-align:center;margin-top:10px">חשבון אחד למשפחה — כל הפרופילים של הילדים (אביב, שחר וכו') יופיעו יחד אחרי הכניסה, בכל מכשיר שתתחברו בו עם אותו אימייל.</p>
+    </div>
+    <div class="hint" id="buildTagAuth" style="margin-top:14px;opacity:.7"></div>
+  </section>
+
   <!-- PROFILE SELECT -->
-  <section id="s-profile" class="screen center active">
+  <section id="s-profile" class="screen center">
     <h1>WordQuest</h1>
     <p class="sub">מסע המילים — בחרו שחקן</p>
     <div id="profileList" class="profiles"></div>
     <button class="btn" id="leaderBtnP" style="margin-top:26px">🏆 טבלת אלופים</button>
+    <button class="iconbtn" id="adminBtn" style="margin-top:18px;display:none" title="לוח ניהול גלובלי">🛡️</button>
     <button class="iconbtn" id="parentGear" style="margin-top:18px" title="אזור הורים">⚙️</button>
+    <button class="iconbtn" id="logoutBtnP" style="margin-top:18px;display:none" title="התנתקות מהחשבון">🚪</button>
     <div class="hint">אזור הורים</div>
+    <p class="hint" id="acctLine" style="margin-top:10px"></p>
     <div class="hint" id="buildTag" style="margin-top:14px;opacity:.7"></div>
+  </section>
+
+  <!-- GLOBAL ADMIN VIEW — gated purely on a server-verified is_admin flag (Auth.isAdmin), never a client-side PIN -->
+  <section id="s-admin" class="screen">
+    <div class="dash">
+      <button class="btn ghost backbtn" id="adminBack">‹ חזרה</button>
+      <h1 style="margin-top:0">🛡️ לוח ניהול גלובלי</h1>
+      <p class="hint">סטטיסטיקות מצטברות על כל המשפחות והשחקנים במערכת (לא רק שלכם).</p>
+      <div class="row" id="adminStats"></div>
+
+      <div class="card">
+        <h3>🐞 באגים שדווחו — מכל המשפחות</h3>
+        <div id="adminBugList"></div>
+        <p class="hint">כל דיווח כולל את השאלה/רמה המדויקת שהייתה על המסך. הסטטוס נשמר לענן ומשותף לכל מי שיש לו הרשאת ניהול.</p>
+      </div>
+    </div>
   </section>
 
   <!-- WORLD MAP -->
@@ -336,6 +384,7 @@
       <div id="streakBox" class="streak" style="display:none" title="רצף ימים — יעד יומי הושג">🔥 <span id="streakN">0</span></div>
       <div id="goalBox" class="goalchip" title="יעד יומי: תשובות נכונות">🎯 <span id="goalN">0</span>/<span id="goalMax">20</span></div>
       <div class="spacer"></div>
+      <div class="power" title="לבבות בקרבות בוס (כולל בונוס קבוע מניצחונות קודמים)">❤️ <span id="heartsN">3</span></div>
       <div class="power" title="כוח פגיעה בקרב">⚔️ <span id="powerN">0</span></div>
       <div class="coins">🪙 <span id="coinN">0</span></div>
       <button class="iconbtn" id="leaderBtn" title="טבלת אלופים">🏆</button>
@@ -499,6 +548,11 @@
       <div class="kid-tabs" id="kidTabs"></div>
 
       <div class="card">
+        <h3>🗺️ מצב נוכחי</h3>
+        <div class="row" id="dashCurrentStats" style="gap:10px"></div>
+      </div>
+
+      <div class="card">
         <h3>⏱️ זמן משחק יומי (דקות)</h3>
         <div class="bars" id="timeBars"></div>
         <p class="hint" id="timeSummary"></p>
@@ -523,18 +577,13 @@
       </div>
 
       <div class="card">
-        <h3>🐞 באגים שדווחו</h3>
-        <div id="bugList"></div>
-        <p class="hint">כל דיווח כולל את השאלה/רמה המדויקת שהייתה על המסך כשלחצו על הכפתור — נוח לעבור עליהם בשבתות תיקון באגים.</p>
-        <div style="margin-top:10px">
-          <button class="btn ghost" id="exportBugs">📤 ייצוא באגים</button>
-          <button class="btn ghost" id="clearBugs" style="margin-inline-start:10px">🗑️ נקה רשימה</button>
-        </div>
-      </div>
-
-      <div class="card">
         <h3>⚙️ הגדרות</h3>
         <div class="skill">
+          <label class="lab">שינוי שם שחקן (השחקן שנבחר למעלה בלשוניות)</label>
+          <input id="renameKidInput" type="text" placeholder="למשל: נועה" style="padding:10px;border-radius:12px;border:2px solid #cbd5e1;font-size:1.05rem;width:200px">
+          <button class="btn" id="renameKidBtn" style="margin-inline-start:10px">שמור שם</button>
+        </div>
+        <div class="skill" style="margin-top:14px">
           <label class="lab">שינוי קוד הורים</label>
           <input class="pin" id="newPin" type="text" inputmode="numeric" maxlength="4" placeholder="1234" style="font-size:1.4rem;letter-spacing:8px;width:140px">
           <button class="btn" id="savePin" style="margin-inline-start:10px">שמור</button>
@@ -542,20 +591,20 @@
         <div style="margin-top:18px">
           <button class="btn ghost" id="exportData">📤 ייצוא נתונים (גיבוי)</button>
           <button class="btn ghost" id="resetKid" style="margin-inline-start:10px">איפוס שחקן נבחר</button>
+          <button class="btn ghost" id="deleteKid" style="margin-inline-start:10px;background:#7f1d1d">🗑️ מחק שחקן (לצמיתות)</button>
         </div>
       </div>
 
       <div class="card">
-        <h3>☁️ סנכרון בין מכשירים</h3>
-        <div class="skill">
-          <label class="lab">קוד משפחה</label>
-          <input class="pin" id="familyCodeInput" type="text" maxlength="24" placeholder="לדוגמה: ginzburg2026" style="font-size:1.1rem;letter-spacing:1px;width:240px;text-transform:none">
-          <button class="btn" id="saveFamilyCode" style="margin-inline-start:10px">שמור וסנכרן</button>
-          <button class="btn ghost" id="syncNow" style="margin-inline-start:10px">🔄 סנכרון עכשיו</button>
+        <h3>☁️ חשבון וסנכרון בין מכשירים</h3>
+        <p class="hint" id="acctEmailLine" style="font-weight:700"></p>
+        <div style="margin-top:10px">
+          <button class="btn ghost" id="syncNow">🔄 סנכרון עכשיו</button>
+          <button class="btn ghost" id="logoutBtn" style="margin-inline-start:10px">🚪 התנתקות</button>
         </div>
         <p class="hint" id="syncStatus" style="margin-top:8px"></p>
-        <p class="hint">הזינו את אותו קוד בכל מכשיר (טלפון של אביב, טלפון של שחר, המחשב שלכם) כדי שכל ההתקדמות תופיע בכל מקום ובלוח ההורים הזה — גם מרחוק. הקוד הוא כמו סיסמה משפחתית פשוטה, לא צריך אימייל או הרשמה בכל מכשיר.</p>
-        <p class="hint"><b>איך הסנכרון עובד:</b> בזמן משחק, המכשיר של הילד שולח עדכון לענן כל כמה שניות אוטומטית — אין צורך "לשמור" באופן ידני. לוח ההורים הזה גם מושך נתונים חדשים אוטומטית כל 15 שניות כל עוד הוא פתוח, ובכל פתיחה שלו. אם אתם רוצים לוודא שיש לכם את הרגע האחרון ממש עכשיו, לחצו "🔄 סנכרון עכשיו". שימו לב לזמן ליד "עודכן לאחרונה" למעלה — זה אומר כמה טרי המידע שאתם רואים.</p>
+        <p class="hint">ההתקדמות מסונכרנת אוטומטית לכל מכשיר שמחובר עם אותו חשבון (אימייל+סיסמה) — אין יותר צורך בקוד משפחה. התחברו עם אותו אימייל בטלפון של אביב, טלפון של שחר והמחשב, וכל ההתקדמות תופיע בכל מקום ובלוח ההורים הזה.</p>
+        <p class="hint"><b>איך הסנכרון עובד:</b> בזמן משחק, המכשיר של הילד שולח עדכון לענן כל כמה שניות אוטומטית — אין צורך "לשמור" באופן ידני. לוח ההורים הזה גם מושך נתונים חדשים אוטומטית כל 15 שניות כל עוד הוא פתוח. אם אתם רוצים לוודא שיש לכם את הרגע האחרון ממש עכשיו, לחצו "🔄 סנכרון עכשיו".</p>
       </div>
     </div>
   </section>
@@ -582,15 +631,20 @@
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <script>
 "use strict";
-/* Version: bump the minor (2.0 -> 2.1) for each change; major (-> 3.0) for a big new phase */
-const VERSION='6.1';
+/* Version: semver major.minor.patch — bump the patch for each small change, minor for a
+   meaningful feature, major for a big new phase (e.g. the multi-account/auth rewrite). */
+const VERSION='1.7.0';
 /* ---- CLOUD SYNC CONFIG ----
    Both are safe to leave in this file — the anon/publishable key is meant to be
    public; real protection comes from the per-family "sync code" each device enters. */
 const SUPABASE_URL='https://ajbtjnudczzezqrcphlv.supabase.co';
 const SUPABASE_ANON_KEY='sb_publishable_o6uEu5SDmUZK0Q06ZDcM2A_WBYz5sZl';
 const ZONE_LEN=10;   // levels per zone; the last level of each zone is the boss battle
-const BOSS_TARGET_HITS=40;   // roughly how many correct answers a fresh-geared player needs to beat a boss (grows per zone)
+const BOSS_TARGET_HITS=55;   // roughly how many correct answers a fresh-geared player needs to beat a boss (grows per zone).
+                              // Raised from 40 — since HP scales with the player's OWN attack (baseDmg), buying
+                              // stronger gear over time was keeping every boss at the same ~40-hit difficulty
+                              // forever, even as coins/gear/extra hearts piled up. Bosses should stay a real
+                              // fight as the family's economy grows, not get relatively easier.
 const DAILY_GOAL=20; // correct answers needed in a day to complete the daily goal
 const DAILY_BONUS=25; // coin reward for completing the daily goal (once per day)
 /* ============================================================
@@ -600,11 +654,23 @@ const DAILY_BONUS=25; // coin reward for completing the daily goal (once per day
    abstracted (Store.*) so a cloud backend can drop in later.
    ============================================================ */
 
-/* ---------- STORAGE LAYER (swap for cloud later) ---------- */
+/* ---------- STORAGE LAYER (swap for cloud later) ----------
+   IMPORTANT: the local cache is namespaced per signed-in account (Supabase user id), not
+   shared across every login on this browser/device. Before this fix, every account on the
+   same device read/wrote the SAME localStorage key — so signing in as a second family on a
+   device that had already played would show that first family's cached players (a cloud pull
+   for a brand-new account finds nothing to overwrite them with, and merge logic never removes
+   extra local players). Store.load must be called with the current account's id (or 'local'
+   when signed out / cloud sync isn't configured) — see App.init and App.doAuth. */
 const Store = {
+  baseKey:'wordquest_v1',
   key:'wordquest_v1',
+  ns:null,
   data:null,
-  load(){
+  load(ns){
+    ns = ns || 'local';
+    this.ns = ns;
+    this.key = (ns==='local') ? this.baseKey : (this.baseKey+'_'+ns);
     try{ this.data = JSON.parse(localStorage.getItem(this.key)) || null; }catch(e){ this.data=null; }
     if(!this.data) this.data = this.fresh();
     // migration: cloud-sync timestamp (used to decide which device's save is newer)
@@ -625,16 +691,20 @@ const Store = {
       if(!pl.daily) pl.daily={date:null,correct:0,met:false};
       if(pl.lastGoalDate===undefined) pl.lastGoalDate=null;
       if(pl.updatedAt===undefined) pl.updatedAt=0;
+      if(pl.bonusHearts===undefined) pl.bonusHearts=0; // migration: permanent boss-win heart bonus
     });
     return this.data;
   },
   fresh(){
+    // NOTE: default profile names are generic placeholders ("שחקן 1"/"שחקן 2"), not real kids'
+    // names — this template is now used by every new family that signs up, not just one. Parents
+    // rename these to their own kids' names from the parent dashboard (⚙️ → "שינוי שם שחקן").
     return {
       updatedAt:0,             // bumped on every save(); cloud sync uses this to pick the newer copy
       settings:{ pin:'1234' },
       players:{
-        aviv:  this.freshPlayer('Aviv','אביב','🥷'),
-        shahar:this.freshPlayer('Shahar','שחר','🦖'),
+        p1: this.freshPlayer('Player 1','שחקן 1','🥷'),
+        p2: this.freshPlayer('Player 2','שחקן 2','🦖'),
         tester:this.freshPlayer('Tester','בודק (הורה)','🤖')
       },
       telemetry:{ items:{} },  // itemId -> {shown,correct,wrong:{answer:count}}
@@ -652,7 +722,8 @@ const Store = {
       owned:[ava], ownedThemes:['default'], theme:'default',  // shop
       gear:[], equippedGear:'',
       potions:{dmg:0,shield:0,crit:0},                        // consumables for boss battles
-      daily:{date:null,correct:0,met:false}, lastGoalDate:null // daily goal + streak (Duolingo-style)
+      daily:{date:null,correct:0,met:false}, lastGoalDate:null, // daily goal + streak (Duolingo-style)
+      bonusHearts:0                                            // permanent +1 per boss win — carries into every future boss fight
     };
   },
   save(playerId){
@@ -670,32 +741,38 @@ const Store = {
 };
 
 /* ---------- CLOUD SYNC (Supabase) ----------
-   Optional: only active once SUPABASE_URL/ANON_KEY (above) are filled in AND a
-   device has a "family sync code" saved. Every family member's device that shares
-   the same code reads/writes the same row, so progress/leaderboard/parent
-   dashboard stay in sync across phones + PC.
+   Real Supabase Auth backs this now (see Auth below) — one account (email+password)
+   per family, replacing the old "family sync code" text field. Every device signed
+   into the same account reads/writes that account's rows, so progress/leaderboard/
+   parent dashboard stay in sync across phones + PC, without a shared secret string.
+
+   Storage shape (see SUPABASE_SETUP.md for the full schema):
+     - family_meta   : one row per family (owner_id = auth.uid()) holding the
+                       family-wide, non-player data — telemetry + bug reports + settings.
+     - players       : one row per child profile (owner_id, slot) — public-safe identity
+                       (nickname) + denormalized leaderboard stats (score/level/etc).
+                       Nicknames are globally unique (never email/real name).
+     - game_saves    : one row per child profile holding that player's full save blob
+                       (ability/stars/review/time/history/shop/potions/daily...).
 
    MERGE, not overwrite: earlier versions treated the whole family blob as one
    last-write-wins unit. That's what caused real data loss — e.g. Aviv playing
    on his tablet for an hour while a parent opened the dashboard on another
    device would push a stale snapshot back and silently erase his session.
-   Now every push first re-pulls and merges field-by-field (see mergeData/
-   mergePlayer below): each player's progress fields (coins/level/ability/etc.)
-   are taken from whichever *that specific player's* copy was touched most
-   recently (per-player `updatedAt`, not the whole-file one), and daily play
-   `time` is merged by taking the max per calendar day so a session can never
-   be zeroed out by a sync from another device. Fails silently offline —
-   local localStorage play always keeps working regardless of cloud state. */
+   Now every push first re-pulls and merges field-by-field (see mergePlayer/
+   mergeTelemetry/mergeBugs below): each player's progress fields (coins/level/
+   ability/etc.) are taken from whichever *that specific player's* copy was
+   touched most recently (per-player `updatedAt`), and daily play `time` is
+   merged by taking the max per calendar day so a session can never be zeroed
+   out by a sync from another device. Fails silently offline — local
+   localStorage play always keeps working regardless of cloud state. */
 const Sync = {
-  key:'wordquest_family_code',
   client:null,
   enabled:false,
   pushTimer:null,
   status:'offline',   // offline | syncing | synced | error
   lastSync:null,       // Date.now() of the last successful pull or push
-
-  code(){ return (localStorage.getItem(this.key)||'').trim(); },
-  setCode(c){ localStorage.setItem(this.key, (c||'').trim()); },
+  _playerIds:{},       // slot -> players.id cache, filled in as we push
 
   init(){
     if(!window.supabase || !SUPABASE_URL || SUPABASE_URL.indexOf('YOUR-SUPABASE')>-1){ this.enabled=false; return; }
@@ -703,21 +780,6 @@ const Sync = {
     catch(e){ this.enabled=false; }
   },
 
-  // combine a local and a remote whole-save blob without throwing anything away
-  mergeData(local, remote){
-    if(!remote) return local;
-    if(!local) return remote;
-    const merged = { settings: (remote.updatedAt||0) > (local.updatedAt||0) ? remote.settings : local.settings, players:{} };
-    const ids = new Set([...Object.keys(local.players||{}), ...Object.keys(remote.players||{})]);
-    ids.forEach(id=>{
-      const lp=local.players&&local.players[id], rp=remote.players&&remote.players[id];
-      merged.players[id] = (!lp) ? rp : (!rp) ? lp : this.mergePlayer(lp, rp);
-    });
-    merged.telemetry = this.mergeTelemetry(local.telemetry, remote.telemetry);
-    merged.bugs = this.mergeBugs(local.bugs, remote.bugs);
-    merged.updatedAt = Math.max(local.updatedAt||0, remote.updatedAt||0);
-    return merged;
-  },
   // per-player merge: scalar progress (coins/level/ability/stars/daily/streak/etc.) comes from
   // whichever copy of THIS player was updated more recently; `time` (minutes played per day) and
   // `history` are merged field-by-field so neither device can wipe out the other's data.
@@ -735,15 +797,22 @@ const Sync = {
     out.updatedAt = Math.max(lu,ru);
     return out;
   },
-  // telemetry (product-improvement stats) is purely additive across devices — sum the counters
+  // telemetry (product-improvement stats): take the MAX of each counter per item, not the sum.
+  // IMPORTANT: this used to sum both sides' totals every merge, but each side already contains
+  // everything previously merged in from the other — so re-syncing the same state (the parent
+  // dashboard polls every 15s while open) doubled the counts each round-trip, compounding
+  // exponentially (observed values like 3.48e+41 "times shown" after normal use). Counters only
+  // ever grow within a single device's own Store (Tele.log does it++), so whichever side has the
+  // higher count already reflects everything the lower side has seen — max is correct AND
+  // idempotent (re-merging identical data changes nothing), unlike sum.
   mergeTelemetry(lt, rt){
     lt = lt||{items:{}}; rt = rt||{items:{}};
     const out={items:{}};
     const ids = new Set([...Object.keys(lt.items||{}), ...Object.keys(rt.items||{})]);
     ids.forEach(id=>{
       const a=lt.items[id]||{shown:0,correct:0,wrong:{}}, b=rt.items[id]||{shown:0,correct:0,wrong:{}};
-      const wrong={}; new Set([...Object.keys(a.wrong||{}),...Object.keys(b.wrong||{})]).forEach(k=>{ wrong[k]=(a.wrong[k]||0)+(b.wrong[k]||0); });
-      out.items[id] = { shown:(a.shown||0)+(b.shown||0), correct:(a.correct||0)+(b.correct||0), wrong };
+      const wrong={}; new Set([...Object.keys(a.wrong||{}),...Object.keys(b.wrong||{})]).forEach(k=>{ wrong[k]=Math.max(a.wrong[k]||0, b.wrong[k]||0); });
+      out.items[id] = { shown:Math.max(a.shown||0, b.shown||0), correct:Math.max(a.correct||0, b.correct||0), wrong };
     });
     return out;
   },
@@ -757,22 +826,45 @@ const Sync = {
   },
 
   async pullAll(){
-    if(!this.enabled || !this.code()) return;
+    if(!this.enabled || !Auth.user) return;
     this.status='syncing'; this.renderStatus();
     try{
-      const { data, error } = await this.client.from('wq_saves').select('data,updated_at').eq('family_code', this.code()).maybeSingle();
-      if(error) throw error;
-      if(data && data.data){
-        Store.data = this.mergeData(Store.data, data.data);
-        Store.saveLocalOnly();
+      const uid=Auth.user.id;
+      const { data:fm, error:fmErr } = await this.client.from('family_meta')
+        .select('telemetry,bugs,settings,updated_at').eq('owner_id',uid).maybeSingle();
+      if(fmErr) throw fmErr;
+      if(fm){
+        const remoteUpdated=fm.updated_at||0, localUpdated=Store.data.updatedAt||0;
+        Store.data.settings = remoteUpdated>localUpdated ? (fm.settings||Store.data.settings) : Store.data.settings;
+        Store.data.telemetry = this.mergeTelemetry(Store.data.telemetry, fm.telemetry);
+        Store.data.bugs = this.mergeBugs(Store.data.bugs, fm.bugs);
+        Store.data.updatedAt = Math.max(localUpdated, remoteUpdated);
       }
+      const { data:saves, error:gsErr } = await this.client.from('game_saves')
+        .select('slot,data,updated_at').eq('owner_id',uid);
+      if(gsErr) throw gsErr;
+      (saves||[]).forEach(row=>{
+        // never let an incoming pull overwrite the player CURRENTLY being played on this device
+        // (e.g. mid-purchase in the shop) — this closes a real race: something else triggering a
+        // pull (the parent dashboard's 15s auto-refresh, another open tab/device on the same
+        // account, etc.) could otherwise clobber a coin spend or answer that hasn't been pushed
+        // to the cloud yet, since the pull runs and replaces Store.data.players[slot] wholesale
+        // before the purchase's own push had a chance to land. The actively-played profile's
+        // local copy is always at least as fresh as anything already in the cloud; it'll get
+        // pushed up normally on the next save regardless of skipping the merge here.
+        if(typeof App!=='undefined' && App.cur===row.slot) return;
+        const remotePlayer=Object.assign({}, row.data, { updatedAt: row.updated_at });
+        const local=Store.data.players[row.slot];
+        Store.data.players[row.slot] = local ? this.mergePlayer(local, remotePlayer) : remotePlayer;
+      });
+      Store.saveLocalOnly();
       this.status='synced'; this.lastSync=Date.now();
     }catch(e){ this.status='error'; console.warn('[Sync] pull failed', e); }
     this.renderStatus();
   },
 
   queuePush(){
-    if(!this.enabled || !this.code()) return;
+    if(!this.enabled || !Auth.user) return;
     clearTimeout(this.pushTimer);
     this.pushTimer=setTimeout(()=>this.pushAll(), 1000);
   },
@@ -780,21 +872,62 @@ const Sync = {
   // always pull-merge-push (never a blind overwrite) so a stale local copy can't erase
   // progress another device already pushed in the meantime.
   async pushAll(){
-    if(!this.enabled || !this.code()) return;
+    if(!this.enabled || !Auth.user) return;
     this.status='syncing'; this.renderStatus();
     try{
-      const { data, error:selErr } = await this.client.from('wq_saves').select('data,updated_at').eq('family_code', this.code()).maybeSingle();
-      if(selErr) throw selErr;
-      if(data && data.data){
-        Store.data = this.mergeData(Store.data, data.data);
-        Store.saveLocalOnly();
+      await this.pullAll();
+      const uid=Auth.user.id;
+      const { error:fmErr } = await this.client.from('family_meta').upsert({
+        owner_id:uid, telemetry:Store.data.telemetry, bugs:Store.data.bugs,
+        settings:Store.data.settings, updated_at:Store.data.updatedAt||Date.now()
+      }, { onConflict:'owner_id' });
+      if(fmErr) throw fmErr;
+      for(const slot of Object.keys(Store.data.players)){
+        await this.pushPlayer(slot);
       }
-      const row={ family_code:this.code(), data:Store.data, updated_at:Store.data.updatedAt||Date.now() };
-      const { error } = await this.client.from('wq_saves').upsert(row, { onConflict:'family_code' });
-      if(error) throw error;
       this.status='synced'; this.lastSync=Date.now();
     }catch(e){ this.status='error'; console.warn('[Sync] push failed', e); }
     this.renderStatus();
+  },
+
+  // upsert one child profile's public leaderboard identity+stats (`players`) and its full
+  // save blob (`game_saves`). Nicknames must be unique across ALL families — if this nickname
+  // is already taken by a different family, we suffix it with a bit of the account id and retry
+  // once. The resolved nickname is cached on the player object so it stays stable afterwards.
+  async pushPlayer(slot){
+    const uid=Auth.user.id;
+    const p=Store.data.players[slot];
+    if(!p) return;
+    if(!p.nick) p.nick=p.he;
+    const s=App.stats(p);
+    let nickname=p.nick;
+    for(let attempt=0; attempt<2; attempt++){
+      const row={ owner_id:uid, slot, nickname, score:s.score, level:p.maxLevel,
+        bosses:s.bosses, stars:s.stars, coins:p.coins, updated_at:p.updatedAt||Date.now() };
+      const { error } = await this.client.from('players').upsert(row, { onConflict:'owner_id,slot' });
+      if(!error){ p.nick=nickname; break; }
+      if(error.code==='23505' && attempt===0){ nickname = p.he+'_'+uid.slice(0,4); continue; }
+      throw error;
+    }
+    const { data:pl, error:plErr } = await this.client.from('players').select('id')
+      .eq('owner_id',uid).eq('slot',slot).maybeSingle();
+    if(plErr || !pl) return;
+    this._playerIds[slot]=pl.id;
+    const { error:gsErr } = await this.client.from('game_saves').upsert({
+      player_id:pl.id, owner_id:uid, slot, data:p, updated_at:p.updatedAt||Date.now()
+    }, { onConflict:'player_id' });
+    if(gsErr) throw gsErr;
+  },
+
+  // permanently remove a player's cloud row — game_saves cascades automatically since it
+  // references players.id with `on delete cascade` (see SUPABASE_SETUP.md). Used for cleaning
+  // up unused placeholder profiles (e.g. the generic "Player 1"/"Player 2" slots every new
+  // account starts with) or any profile a parent genuinely wants gone for good.
+  async deletePlayer(slot){
+    if(!this.enabled || !Auth.user) return;
+    const { error } = await this.client.from('players').delete()
+      .eq('owner_id',Auth.user.id).eq('slot',slot);
+    if(error) throw error;
   },
 
   timeAgo(ms){
@@ -808,11 +941,65 @@ const Sync = {
   renderStatus(){
     const el=document.getElementById('syncStatus'); if(!el) return;
     if(!this.enabled){ el.textContent='⚪ סנכרון ענן לא הוגדר עדיין (ראו SUPABASE_SETUP.md)'; return; }
-    if(!this.code()){ el.textContent='⚪ מצב מקומי — לא הוזן קוד משפחה במכשיר הזה. הנתונים נשמרים רק על המכשיר הזה.'; return; }
+    if(!Auth.user){ el.textContent='⚪ לא מחוברים לחשבון — הנתונים נשמרים רק על המכשיר הזה.'; return; }
     const when = this.lastSync ? ' · עודכן לאחרונה '+this.timeAgo(this.lastSync) : '';
     const labels={ syncing:'🔄 מסנכרן…', synced:'🟢 מסונכרן לענן'+when, error:'🔴 שגיאת סנכרון — הנתונים נשמרו מקומית ויסונכרנו כשהחיבור יחזור'+when };
     el.textContent = labels[this.status] || '';
   }
+};
+
+/* ---------- AUTH (Supabase Auth) ----------
+   Real email+password accounts. One account = one family (all child profiles live
+   under Store.data.players as before). Replaces the old client-side "family code"
+   string and the trivially-fake admin PIN for anything cross-family. `is_admin` is
+   a server-side column on `profiles`, checked with a real query — never trusted
+   from the client alone. See SUPABASE_SETUP.md for the schema + RLS policies. */
+const Auth = {
+  user:null,       // Supabase auth user object, or null when signed out
+  isAdmin:false,   // server-verified — set only after a successful `profiles` query
+
+  async init(){
+    if(!Sync.enabled) return; // no Supabase configured — app runs fully local, no login required
+    try{
+      const { data:{ session } } = await Sync.client.auth.getSession();
+      this.user = session ? session.user : null;
+    }catch(e){ this.user=null; }
+    Sync.client.auth.onAuthStateChange((event,session)=>{
+      this.user = session ? session.user : null;
+      if(event==='SIGNED_OUT'){ this.isAdmin=false; App.onSignedOut(); }
+    });
+    if(this.user) await this.checkAdmin();
+  },
+  async checkAdmin(){
+    this.isAdmin=false;
+    if(!this.user || !Sync.enabled) return;
+    try{
+      const { data, error } = await Sync.client.from('profiles').select('is_admin').eq('id',this.user.id).maybeSingle();
+      if(!error && data) this.isAdmin = !!data.is_admin;
+    }catch(e){ this.isAdmin=false; }
+  },
+  // set this.user synchronously on success (don't wait for the async onAuthStateChange event)
+  // so the caller can immediately load THIS account's own local storage namespace.
+  async signUp(email,password){
+    const r = await Sync.client.auth.signUp({ email, password });
+    if(r.data && r.data.session) this.user = r.data.user;
+    return r;
+  },
+  async signIn(email,password){
+    const r = await Sync.client.auth.signInWithPassword({ email, password });
+    if(r.data && r.data.session) this.user = r.data.user;
+    return r;
+  },
+  // logout must ALWAYS succeed from the user's point of view, even if the network call to
+  // revoke the session fails or hangs (e.g. flaky connection while testing locally) — so we
+  // clear local auth state and switch to the login screen in a `finally`, not only after a
+  // successful server round-trip.
+  async signOut(){
+    try{ await Sync.client.auth.signOut(); }
+    catch(e){ console.warn('[Auth] signOut request failed, signing out locally anyway', e); }
+    finally{ this.user=null; this.isAdmin=false; App.onSignedOut(); }
+  },
+  resetPassword(email){ return Sync.client.auth.resetPasswordForEmail(email, { redirectTo: window.location.href }); }
 };
 
 /* ---------- AUDIO (Web Speech API — free, built-in English TTS) ---------- */
@@ -1134,11 +1321,11 @@ const Engine={
     const add=(q)=>{ if(!q||used.has(q.itemId)) return false; used.add(q.itemId); qs.push(q); return true; };
     // spaced-repetition review items are shown in THIS level's focused type when they share its skill
     p.review.filter(r=>r.due<=Date.now()).slice(0,2).forEach(r=>
-      add(this.makeQuestion(p,r.skill,r.diff,r.itemId, focus.skill===r.skill?focus.type:undefined, focus.wordPool)));
+      add(this.makeQuestion(p,r.skill,r.diff,r.itemId, focus.skill===r.skill?focus.type:undefined, focus.wordPool, lv)));
     let guard=0;
     while(qs.length<N && guard++<200){
       const diff=this.pickDiff(p,focus.skill,lv);
-      add(this.makeQuestion(p,focus.skill,diff,null,focus.type,focus.wordPool));
+      add(this.makeQuestion(p,focus.skill,diff,null,focus.type,focus.wordPool, lv));
     }
     const shuffled=qs.sort(()=>Math.random()-0.5);
     shuffled.focus=focus;
@@ -1160,8 +1347,12 @@ const Engine={
     return base;
   },
 
-  makeQuestion(p,skill,diff,forceItem,mode,wordPool){
+  makeQuestion(p,skill,diff,forceItem,mode,wordPool,lv){
     const numOpts = 4; // always 4 options for consistency
+    // world (1-indexed) the CURRENT level belongs to — used to gate "type the whole word from
+    // memory" difficulty (see typeWordPic below). Unknown/missing lv (defensive — shouldn't
+    // normally happen) falls back to treating it as an advanced world, the harder/safer default.
+    const _world = lv ? Math.ceil(lv/ZONE_LEN) : 6;
     if(skill==='letters'){
       const modes=SKILL_TYPES.letters;
       let m=mode||modes[Math.floor(Math.random()*modes.length)];
@@ -1251,8 +1442,16 @@ const Engine={
           options:opts.map(o=>({label:o.e,correct:o.w===item.w,cls:'',speak:o.w})), answer:item.e};
       }
       if(m==='typeWordPic'){
+        // Worlds 1-5: the word is shown on screen (with its picture + sound) — this is a
+        // copy-typing exercise (letter-by-letter typing + sound/letter reinforcement), not a
+        // spelling-from-memory test. Recall-only typing (word hidden, picture/sound only) is
+        // reserved for world 6+ ("advanced"/champions), once picture-vocabulary is established.
+        if(_world<=5){
+          return {...base, heb:'הקלידו את המילה שאתם רואים ושומעים', stageType:'wordCopy', stageValue:item.w, pic:item.e, say:item.w,
+            inputType:'text', maxLen:16, answer:item.w, check:v=>v.trim().toLowerCase()===item.w, noPaste:true};
+        }
         return {...base, heb:'הקלידו את המילה באנגלית', stageType:'emoji', stageValue:item.e, say:item.w,
-          inputType:'text', maxLen:16, answer:item.w, check:v=>v.trim().toLowerCase()===item.w};
+          inputType:'text', maxLen:16, answer:item.w, check:v=>v.trim().toLowerCase()===item.w, noPaste:true};
       }
       if(m==='typeMissing'){
         const mi=Math.floor(Math.random()*item.w.length);
@@ -1492,16 +1691,59 @@ const Shop={
 const App={
   cur:null, ex:null, timer:null, lastTick:null, _tt:null, shopCat:'avatar', _clueUsed:false,
 
-  init(){
-    Store.load(); Speech.init(); Sync.init();
-    this.renderProfiles();
+  async init(){
+    Speech.init(); Sync.init();
     this.wire();
-    try{ document.getElementById('buildTag').textContent='WordQuest v'+VERSION; }catch(e){}
+    try{ document.getElementById('buildTag').textContent='WordQuest v'+VERSION;
+      document.getElementById('buildTagAuth').textContent='WordQuest v'+VERSION; }catch(e){}
     document.addEventListener('pointerdown',()=>Speech.prime(),{once:true});   // unlock audio
     document.addEventListener('visibilitychange',()=>{ if(document.hidden) this.stopTimer(); else if(this.cur) this.startTimer(); });
-    // pull the latest cloud data (from other devices) once at boot, then refresh what's on screen
-    Sync.pullAll().then(()=>{ this.renderProfiles(); if(document.getElementById('s-dash').classList.contains('active')) this.renderDash(); });
+    await Auth.init();
+    if(Sync.enabled && !Auth.user){
+      // cloud sync is configured but nobody is logged in on this device yet — real login required.
+      // Store isn't loaded at all yet (we don't know whose local cache to open), so the auth
+      // screen renders with no player data on screen.
+      this.show('s-auth');
+      return;
+    }
+    // Store is namespaced per account: Auth.user.id when signed in, or the legacy 'local' key
+    // when cloud sync isn't configured (fully offline mode, same as before accounts existed).
+    Store.load(Auth.user ? Auth.user.id : 'local');
+    this.afterAuthReady();
   },
+  // called once we know whether we're logged in (or cloud sync isn't configured at all,
+  // in which case the app just runs fully local/offline as before, no login required)
+  afterAuthReady(){
+    this.renderProfiles();
+    this.updateAccountUI();
+    this.updateAdminUI();
+    this.show('s-profile');
+    if(Auth.user){
+      // pull the latest cloud data (from other devices) once at boot, then refresh what's on screen
+      Sync.pullAll().then(()=>{ this.renderProfiles(); if(document.getElementById('s-dash').classList.contains('active')) this.renderDash(); });
+    }
+  },
+  onSignedOut(){
+    this.stopTimer(); this.stopDashPoll(); this.cur=null;
+    Store.data=null; Store.ns=null; // don't leave the previous account's cache renderable while signed out
+    this.updateAccountUI(); this.updateAdminUI();
+    this.show('s-auth');
+  },
+  updateAccountUI(){
+    const email = Auth.user ? Auth.user.email : '';
+    const l1=document.getElementById('acctLine'), l2=document.getElementById('acctEmailLine');
+    if(l1) l1.textContent = email ? ('מחוברים כ־'+email) : '';
+    if(l2) l2.textContent = email ? ('מחוברים כ־'+email) : 'לא מחוברים';
+    // quick logout, right on the profile-picker screen — no need to go through the parent PIN
+    // just to switch accounts (useful now that testing/switching between families is common).
+    const lb=document.getElementById('logoutBtnP');
+    if(lb) lb.style.display = Auth.user ? '' : 'none';
+  },
+  updateAdminUI(){
+    const btn=document.getElementById('adminBtn');
+    if(btn) btn.style.display = Auth.isAdmin ? '' : 'none';
+  },
+  escapeHtml(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); },
   show(id){
     if(id!=='s-dash') this.stopDashPoll();
     document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active');
@@ -1661,11 +1903,16 @@ const App={
 
   // how many grid columns the winding practice-level path uses per zone (boss gets its own final row)
   MAP_COLS:3,
+  // hearts a player would start their NEXT boss fight with (base 3 + permanent boss-win bonus,
+  // not counting the one-battle shield potion) — shown persistently on the map topbar, not just
+  // inside a boss battle, so kids can see the payoff of previous boss wins at all times.
+  updateHeartsUI(p){ const el=document.getElementById('heartsN'); if(el) el.textContent=3+(p.bonusHearts||0); },
   renderMap(){
     const p=Store.player(this.cur);
     document.getElementById('coinN').textContent=p.coins;
     document.getElementById('powerN').textContent=Shop.attack(p);
     document.getElementById('whoAva').textContent=this.avatarStr(p);
+    this.updateHeartsUI(p);
     this.ensureDaily(p); this.updateGoalUI(p);
     const path=document.getElementById('pathEl'); path.innerHTML='';
     // always show at least 6 zones so the journey looks long; plus a zone beyond current progress
@@ -1781,7 +2028,19 @@ const App={
       }
       const w=document.createElement('div'); w.className='bigq word en'; w.style.letterSpacing='6px'; w.textContent=q.stageValue; stage.appendChild(w);
     }
-    if(q.stageType==='letter' || q.stageType==='emoji' || q.stageType==='wordmask' || q.stageType==='audio'){
+    else if(q.stageType==='wordCopy'){
+      // worlds 1-5's easier "type the word" exercise: show the picture AND the word itself (a
+      // copy-typing exercise, not spelling from memory) — the word text is marked non-selectable
+      // so it can't be copy-pasted straight into the answer box (pasting is also blocked on the
+      // input itself, see paintQuestion's text-input setup below, as a second layer).
+      const px=Pixel.render(q.say,'big');
+      if(px){ stage.appendChild(px); } else if(q.pic){ const pic=document.createElement('div'); pic.className='bigq'; pic.style.fontSize='3.4rem'; pic.textContent=q.pic; stage.appendChild(pic); }
+      const w=document.createElement('div'); w.className='bigq word en nocopy'; w.style.marginTop='10px'; w.textContent=q.stageValue;
+      w.oncopy=w.oncut=w.oncontextmenu=(e)=>e.preventDefault(); w.ondragstart=(e)=>e.preventDefault();
+      stage.appendChild(w);
+      Speech.say(q.say);
+    }
+    if(q.stageType==='letter' || q.stageType==='emoji' || q.stageType==='wordmask' || q.stageType==='wordCopy' || q.stageType==='audio'){
       const rb=document.createElement('button'); rb.className='replay'; rb.textContent='🔊 שמע שוב';
       rb.onclick=()=>{ q.stageType==='letter'?Speech.letter(q.say):Speech.say(q.say); };
       stage.appendChild(rb);
@@ -1812,6 +2071,10 @@ const App={
       const inp=document.createElement('input'); inp.type='text'; inp.className='typeinput en';
       inp.autocomplete='off'; inp.autocorrect='off'; inp.autocapitalize='off'; inp.spellcheck=false;
       inp.maxLength=q.maxLen||16; inp.inputMode='text';
+      // block paste/cut/drag-drop on every typed answer — this is a typing/spelling exercise,
+      // not a place to paste the answer in from the "copy the word you see" (wordCopy) stage.
+      ['paste','cut','drop'].forEach(evt=>inp.addEventListener(evt, e=>e.preventDefault()));
+      inp.addEventListener('contextmenu', e=>e.preventDefault()); // no right-click "Paste" either
       const btn=document.createElement('button'); btn.className='btn big gold submitbtn'; btn.textContent='✔ בדיקה';
       const submit=()=>{ const val=inp.value; if(!val || !val.trim()) return; onPick(btn,{label:val,correct:q.check(val),speak:q.say},q); };
       btn.onclick=submit;
@@ -1932,26 +2195,139 @@ const App={
     const score=reached*10 + bosses*50 + stars*4;
     return {lvl,reached,zone,bosses,stars,attack,coins:p.coins,score};
   },
-  openLeader(){ this.renderLeader(); this.show('s-leader'); },
-  renderLeader(){
-    const rows=Object.keys(Store.data.players).map(id=>({p:Store.player(id),s:this.stats(Store.player(id))}));
-    rows.sort((a,b)=>b.s.score-a.s.score);
-    const maxReached=Math.max(1,...rows.map(r=>r.s.reached));
+  async openLeader(){ this.show('s-leader'); await this.renderLeader(); },
+  // shows the GLOBAL leaderboard (all families) when cloud sync is configured and reachable,
+  // via the public `leaderboard` view (nickname + score only — never email/real name/save
+  // internals). Falls back to a same-family-only view (this device's local players) when
+  // offline or cloud sync isn't set up, same as the original behavior.
+  async renderLeader(){
+    const el=document.getElementById('leaderList');
+    el.innerHTML='<p class="hint">טוען…</p>';
+    if(Sync.enabled){
+      try{
+        const { data, error } = await Sync.client.from('leaderboard')
+          .select('nickname,score,level,bosses,stars,coins').order('score',{ascending:false}).limit(50);
+        if(!error && data && data.length){ this.renderLeaderRows(data, true); return; }
+      }catch(e){ /* fall through to local-only view below */ }
+    }
+    const rows=Object.keys(Store.data.players).map(id=>{
+      const p=Store.player(id), s=this.stats(p);
+      return { nickname:p.he, score:s.score, level:s.lvl, bosses:s.bosses, stars:s.stars, coins:s.coins };
+    });
+    this.renderLeaderRows(rows, false);
+  },
+  renderLeaderRows(rows, global){
+    rows=rows.slice().sort((a,b)=>b.score-a.score);
+    const maxLvl=Math.max(1,...rows.map(r=>r.level||1));
     const medals=['🥇','🥈','🥉'];
-    document.getElementById('leaderList').innerHTML=rows.map((r,i)=>{
-      const s=r.s;
+    const header='<p class="hint" style="text-align:center;margin-bottom:10px">'+
+      (global ? '🌍 טבלת אלופים גלובלית — כל המשפחות' : '📶 תצוגה מקומית בלבד (בלי חיבור לענן) — רק השחקנים שבמכשיר הזה')+'</p>';
+    document.getElementById('leaderList').innerHTML = header + rows.map((r,i)=>{
       return '<div class="lb-row'+(i===0?' first':'')+'">'+
         '<div class="lb-rank">'+(medals[i]||('#'+(i+1)))+'</div>'+
-        '<div class="lb-ava">'+this.avatarStr(r.p)+'</div>'+
-        '<div class="lb-main"><div class="lb-name">'+r.p.he+'</div><div class="lb-chips">'+
-          '<span class="lb-chip">🗺️ עולם '+s.zone+' · שלב '+(((s.lvl-1)%ZONE_LEN)+1)+'</span>'+
-          '<span class="lb-chip">👹 '+s.bosses+' בוסים</span>'+
-          '<span class="lb-chip">⭐ '+s.stars+'</span>'+
-          '<span class="lb-chip">🪙 '+s.coins+'</span>'+
-          '<span class="lb-chip">⚔️ '+s.attack+'</span>'+
-        '</div><div class="lb-bar"><div style="width:'+(s.reached/maxReached*100)+'%"></div></div></div>'+
+        '<div class="lb-ava">🎮</div>'+
+        '<div class="lb-main"><div class="lb-name">'+this.escapeHtml(r.nickname)+'</div><div class="lb-chips">'+
+          '<span class="lb-chip">🗺️ שלב '+(r.level||1)+'</span>'+
+          '<span class="lb-chip">👹 '+(r.bosses||0)+' בוסים</span>'+
+          '<span class="lb-chip">⭐ '+(r.stars||0)+'</span>'+
+          '<span class="lb-chip">🪙 '+(r.coins||0)+'</span>'+
+        '</div><div class="lb-bar"><div style="width:'+((r.level||1)/maxLvl*100)+'%"></div></div></div>'+
       '</div>';
     }).join('');
+  },
+
+  /* ---------- GLOBAL ADMIN VIEW (Sivan only) ----------
+     Gated purely on Auth.isAdmin, which is only ever set true after a real query against the
+     server-side `profiles.is_admin` column (see Auth.checkAdmin) — never a client-side check. */
+  async openAdmin(){
+    this.show('s-admin');
+    const el=document.getElementById('adminStats');
+    const bugEl=document.getElementById('adminBugList');
+    if(!Auth.isAdmin){ el.innerHTML='<p class="hint">אין הרשאת מנהל לחשבון הזה.</p>'; if(bugEl) bugEl.innerHTML=''; return; }
+    el.innerHTML='<p class="hint">טוען…</p>';
+    try{
+      const [{ count:famCount, error:fErr }, { data:players, error:pErr }] = await Promise.all([
+        Sync.client.from('profiles').select('id',{count:'exact',head:true}),
+        Sync.client.from('players').select('level,score,bosses,stars,coins')
+      ]);
+      if(fErr) throw fErr; if(pErr) throw pErr;
+      const n=players.length;
+      const avg=(f)=> n ? Math.round(players.reduce((a,p)=>a+(p[f]||0),0)/n) : 0;
+      const sum=(f)=> players.reduce((a,p)=>a+(p[f]||0),0);
+      const card=(title,val)=>'<div class="card" style="min-width:150px;flex:1;text-align:center">'+
+        '<h3 style="margin:0 0 6px">'+title+'</h3><p style="font-size:2rem;font-weight:900;margin:0">'+val+'</p></div>';
+      el.innerHTML = card('👨‍👩‍👧 משפחות רשומות', famCount||0)
+        + card('🧒 שחקנים (פרופילים)', n)
+        + card('🗺️ רמה ממוצעת', avg('level'))
+        + card('👹 בוסים שהובסו בס"ה', sum('bosses'))
+        + card('🪙 מטבעות שנצברו בס"ה', sum('coins'));
+    }catch(e){ el.innerHTML='<p class="hint">שגיאה בטעינת נתוני הניהול: '+this.escapeHtml(e.message||String(e))+'</p>'; }
+    this.loadAdminBugs();
+  },
+  // pulls every family's bug reports (admin's `family_meta` RLS policy allows selecting ALL
+  // rows, not just their own) and flattens them into one global, cross-family list. Each bug
+  // remembers which family (_owner) it came from so a status change can be written back to
+  // exactly that family's row without touching anyone else's.
+  async loadAdminBugs(){
+    const el=document.getElementById('adminBugList'); if(!el) return;
+    el.innerHTML='<p class="hint">טוען…</p>';
+    try{
+      const { data, error } = await Sync.client.from('family_meta').select('owner_id,bugs');
+      if(error) throw error;
+      const all=[];
+      (data||[]).forEach(row=>{ (row.bugs||[]).forEach(b=> all.push(Object.assign({}, b, { _owner: row.owner_id }))); });
+      all.sort((a,b)=>(b.ts||0)-(a.ts||0));
+      this._adminBugs = all;
+      this.renderAdminBugs();
+    }catch(e){ el.innerHTML='<p class="hint">שגיאה בטעינת באגים: '+this.escapeHtml(e.message||String(e))+'</p>'; }
+  },
+  renderAdminBugs(){
+    const el=document.getElementById('adminBugList'); if(!el) return;
+    const bugs=this._adminBugs||[];
+    if(!bugs.length){ el.innerHTML='<p class="hint">אין דיווחי באגים.</p>'; return; }
+    const screenLabel={'s-ex':'תרגול','s-boss':'קרב בוס','s-map':'מפה','s-shop':'חנות','s-bossprep':'לפני קרב בוס'};
+    const statusLabel={ todo:'⏳ לטיפול', fixed:'✅ תוקן', ignored:'🚫 התעלמות' };
+    el.innerHTML = bugs.map((b,i)=>{
+      const when=new Date(b.ts).toLocaleString('he-IL');
+      const who=b.playerName||'—';
+      const where=screenLabel[b.screen]||b.screen||'—';
+      const lvl=b.level?(' · '+b.level):'';
+      const status=b.status||'todo';
+      let qLine='';
+      if(b.question){
+        const parts=[];
+        if(b.question.prompt) parts.push('שאלה: '+b.question.prompt);
+        if(b.question.heb) parts.push(b.question.heb);
+        if(b.question.say) parts.push('מילה/צליל: <span class="en">'+b.question.say+'</span>');
+        if(b.question.answer) parts.push('תשובה נכונה: <span class="en">'+b.question.answer+'</span>');
+        qLine='<div class="muted" style="font-size:.9rem;margin-top:4px">'+parts.join(' · ')+'</div>';
+      }
+      const btn=(st,label)=>'<button class="btn ghost adminBugBtn" data-i="'+i+'" data-st="'+st+'" style="font-size:.78rem;padding:6px 10px;margin-inline-end:6px'+(status===st?';outline:3px solid #22c55e':'')+'">'+label+'</button>';
+      return '<div class="tele-item" style="display:block;text-align:right">'+
+        '<div><b>'+who+'</b> <span class="muted">· '+where+lvl+' · '+when+' · '+statusLabel[status]+'</span></div>'+
+        '<div style="margin-top:4px">"'+this.escapeHtml(b.note)+'"</div>'+
+        qLine+
+        '<div style="margin-top:8px">'+btn('todo','⏳ לטיפול')+btn('fixed','✅ תוקן')+btn('ignored','🚫 התעלם')+'</div>'+
+        '</div>';
+    }).join('');
+    el.querySelectorAll('.adminBugBtn').forEach(b=> b.onclick=()=>this.setBugStatus(parseInt(b.dataset.i,10), b.dataset.st));
+  },
+  // patches ONE bug's status inside its owning family's family_meta.bugs array — re-reads that
+  // family's current array first (rather than writing back our possibly-stale in-memory copy)
+  // so a family playing/reporting concurrently can't have their other bugs clobbered.
+  async setBugStatus(i, status){
+    const bug=this._adminBugs && this._adminBugs[i]; if(!bug) return;
+    try{
+      const { data, error } = await Sync.client.from('family_meta').select('bugs').eq('owner_id', bug._owner).maybeSingle();
+      if(error) throw error;
+      const arr=(data && data.bugs) || [];
+      const idx=arr.findIndex(x=>x.id===bug.id);
+      if(idx>-1) arr[idx].status=status;
+      const { error:upErr } = await Sync.client.from('family_meta').update({ bugs:arr }).eq('owner_id', bug._owner);
+      if(upErr) throw upErr;
+      bug.status=status;
+      this.renderAdminBugs();
+    }catch(e){ alert('שגיאה בעדכון סטטוס: '+(e.message||e)); }
   },
 
   /* ---------- WORLDS + BOSS BATTLES ---------- */
@@ -1965,15 +2341,17 @@ const App={
     this.renderPrep(); this.show('s-bossprep');
   },
   // shared HP formula so the prep-screen estimate and the real battle never drift apart —
-  // anchored to BOSS_TARGET_HITS correct answers at the player's CURRENT damage, growing per zone.
-  bossHP(world,baseDmg){ return Math.round(BOSS_TARGET_HITS*baseDmg*(1+(world-1)*0.12)); },
+  // anchored to BOSS_TARGET_HITS correct answers at the player's CURRENT damage, growing per
+  // zone. Per-world growth raised from 0.12 to 0.18 so later worlds ramp up faster too, on top
+  // of the higher BOSS_TARGET_HITS baseline above.
+  bossHP(world,baseDmg){ return Math.round(BOSS_TARGET_HITS*baseDmg*(1+(world-1)*0.18)); },
   renderPrep(){
     const p=Store.player(this.cur), bs=this.boss;
     document.getElementById('prepBossEmoji').textContent=this.bossEmoji(bs.world);
     document.getElementById('prepBossTitle').textContent='בוס · עולם '+bs.world+' · '+this.sectionName(bs.world);
     document.getElementById('prepCoins').textContent=p.coins;
     document.getElementById('prepPower').textContent=Shop.attack(p);
-    document.getElementById('prepHearts').textContent=3+(bs.use.shield?1:0);
+    document.getElementById('prepHearts').textContent=3+(bs.use.shield?1:0)+(p.bonusHearts||0);
     const estDmg=5+Shop.attack(p);
     document.getElementById('prepDmg').textContent='כל תשובה נכונה פוגעת ב‑'+estDmg+' בבוס 💥 (רצף של 3+ תשובות נכונות מוסיף עוד +3!) — דמות וציוד חזקים יותר = פגיעה חזקה יותר!';
     const estHP=this.bossHP(bs.world,estDmg);
@@ -2008,7 +2386,7 @@ const App={
     bs.baseDmg = 5 + Shop.attack(p);    // your character + equipped weapon = damage per correct answer
     bs.bossMaxHP = this.bossHP(bs.world, bs.baseDmg);   // ~BOSS_TARGET_HITS hits at current strength, tougher each zone
     bs.hp = bs.bossMaxHP;
-    bs.maxHearts = 3 + (bs.use.shield?1:0);
+    bs.maxHearts = 3 + (bs.use.shield?1:0) + (p.bonusHearts||0);   // permanent boss-win bonus stacks with the shield potion
     bs.hearts = bs.maxHearts;
     bs.dbl = !!bs.use.dmg; bs.crit = !!bs.use.crit;
     bs.first = true; bs.streak=0; bs.correct=0; bs.total=0; bs.lastId=null;
@@ -2063,7 +2441,7 @@ const App={
     const src = useReview ? bs.pool.prior : bs.pool.thisZone;
     const focus = src[Math.floor(Math.random()*src.length)];
     const diff=Math.min(5, Engine.pickDiff(p,focus.skill,bs.lv)+1);   // bosses ask harder questions
-    let q,g=0; do{ q=Engine.makeQuestion(p,focus.skill,diff,null,focus.type,focus.wordPool); }while(q.itemId===bs.lastId && g++<10);
+    let q,g=0; do{ q=Engine.makeQuestion(p,focus.skill,diff,null,focus.type,focus.wordPool,bs.lv); }while(q.itemId===bs.lastId && g++<10);
     bs.lastId=q.itemId; bs.q=q;
     this.updateBossHUD();
     this.paintQuestion(q,{prompt:'bossPrompt',heb:'bossHeb',stage:'bossStage',options:'bossOptions'},(b,o,qq)=>this.bossAnswer(b,o,qq));
@@ -2119,12 +2497,14 @@ const App={
     const bs=this.boss, p=Store.player(this.cur);
     if(bs.lv>=p.maxLevel) p.maxLevel=bs.lv+1;   // unlock next world
     const reward=40+bs.world*20; p.coins+=reward;
+    p.bonusHearts=(p.bonusHearts||0)+1;   // permanent +1 heart, carried into every future boss fight
     Store.save();
     document.getElementById('bossResEmoji').textContent='🏆';
     document.getElementById('bossResTitle').textContent='ניצחת את הבוס!';
-    document.getElementById('bossResMsg').textContent='עולם '+bs.world+' הושלם! עולם '+(bs.world+1)+' נפתח 🔓 · ✅ '+bs.correct+'/'+bs.total+' תשובות נכונות';
+    document.getElementById('bossResMsg').textContent='עולם '+bs.world+' הושלם! עולם '+(bs.world+1)+' נפתח 🔓 · ✅ '+bs.correct+'/'+bs.total+' תשובות נכונות · ❤️ לב קבוע נוסף!';
     document.getElementById('bossResCoins').textContent=reward;
     document.getElementById('bossNext').style.display='';
+    this.updateHeartsUI(p);
     this.show('s-bossresult');
   },
   bossLose(){
@@ -2178,28 +2558,78 @@ const App={
     document.getElementById('pinOk').onclick=()=>this.checkPin();
     document.getElementById('pinInput').addEventListener('keydown',e=>{ if(e.key==='Enter') this.checkPin(); });
     document.getElementById('savePin').onclick=()=>{ const v=document.getElementById('newPin').value.trim(); if(/^\d{4}$/.test(v)){ Store.data.settings.pin=v; Store.save(); alert('הקוד עודכן'); } else alert('יש להזין 4 ספרות'); };
+    // rename the currently-selected dashboard kid — lets every family replace the generic
+    // "שחקן 1"/"שחקן 2" placeholder names with their own kids' names right after signing up.
+    document.getElementById('renameKidBtn').onclick=()=>{
+      const v=document.getElementById('renameKidInput').value.trim();
+      if(!v){ alert('נא להזין שם'); return; }
+      const p=Store.player(this.dashKid); if(!p) return;
+      p.he=v; p.en=v; Store.save(this.dashKid);
+      this.renderDash(); this.renderProfiles();
+      alert('השם עודכן');
+    };
     document.getElementById('exportData').onclick=()=>this.exportData();
     document.getElementById('resetKid').onclick=()=>this.resetKid();
-    document.getElementById('saveFamilyCode').onclick=()=>{
-      const v=document.getElementById('familyCodeInput').value.trim();
-      if(!v){ alert('נא להזין קוד משפחה'); return; }
-      Sync.setCode(v);
-      Sync.pullAll().then(()=>{ Sync.pushAll(); this.renderDash(); this.renderProfiles(); });
-    };
+    document.getElementById('deleteKid').onclick=()=>this.deleteKid();
     document.getElementById('syncNow').onclick=()=>{ Sync.pushAll().then(()=>Sync.pullAll()).then(()=>{ this.renderDash(); this.renderProfiles(); }); };
+    document.getElementById('logoutBtn').onclick=()=>{ Auth.signOut(); };
+    document.getElementById('logoutBtnP').onclick=()=>{ if(confirm('להתנתק מהחשבון?')) Auth.signOut(); };
     document.getElementById('bugBtn').onclick=()=>this.openBugReport();
     document.getElementById('bugCancel').onclick=()=>this.closeBugReport();
     document.getElementById('bugSend').onclick=()=>this.submitBugReport();
-    document.getElementById('exportBugs').onclick=()=>this.exportBugs();
-    document.getElementById('clearBugs').onclick=()=>this.clearBugs();
+    // login / signup / forgot-password screen
+    document.getElementById('authLogin').onclick=()=>this.doAuth('login');
+    document.getElementById('authSignup').onclick=()=>this.doAuth('signup');
+    document.getElementById('authForgot').onclick=(e)=>{ e.preventDefault(); this.doForgot(); };
+    document.getElementById('authPassword').addEventListener('keydown',e=>{ if(e.key==='Enter') this.doAuth('login'); });
+    // global admin view (Sivan only — gated on Auth.isAdmin, checked server-side in Auth.checkAdmin)
+    document.getElementById('adminBtn').onclick=()=>this.openAdmin();
+    document.getElementById('adminBack').onclick=()=>{ this.renderProfiles(); this.show('s-profile'); };
+  },
+  authErrHe(error){
+    const m=(error && error.message) || '';
+    if(/already registered|already exists/i.test(m)) return 'האימייל הזה כבר רשום — נסו להתחבר במקום להירשם';
+    if(/invalid login|invalid.*credentials/i.test(m)) return 'אימייל או סיסמה שגויים';
+    if(/password/i.test(m) && /(6|characters|short)/i.test(m)) return 'הסיסמה חייבת להיות לפחות 6 תווים';
+    if(/email/i.test(m) && /invalid/i.test(m)) return 'כתובת אימייל לא תקינה';
+    return m ? ('שגיאה: '+m) : 'אירעה שגיאה, נסו שוב';
+  },
+  async doAuth(mode){
+    const errEl=document.getElementById('authErr'); errEl.style.color='#ef4444'; errEl.textContent='';
+    if(!Sync.enabled){ errEl.textContent='סנכרון ענן לא הוגדר עדיין (ראו SUPABASE_SETUP.md)'; return; }
+    const email=document.getElementById('authEmail').value.trim();
+    const pw=document.getElementById('authPassword').value;
+    if(!email || !pw){ errEl.textContent='נא למלא אימייל וסיסמה'; return; }
+    if(pw.length<6){ errEl.textContent='הסיסמה חייבת להיות לפחות 6 תווים'; return; }
+    const { data, error } = mode==='signup' ? await Auth.signUp(email,pw) : await Auth.signIn(email,pw);
+    if(error){ errEl.textContent=this.authErrHe(error); return; }
+    if(mode==='signup' && data && data.user && !data.session){
+      // email confirmation required before a session exists — nothing more to do here yet
+      errEl.style.color='#16a34a';
+      errEl.textContent='נרשמת בהצלחה! בדקו את תיבת הדואר לאימות החשבון, ואז התחברו.';
+      return;
+    }
+    await Auth.checkAdmin();
+    // load THIS account's own local cache (never the shared/legacy key) before showing anything
+    Store.load(Auth.user ? Auth.user.id : 'local');
+    this.afterAuthReady();
+  },
+  async doForgot(){
+    const errEl=document.getElementById('authErr');
+    if(!Sync.enabled){ errEl.style.color='#ef4444'; errEl.textContent='סנכרון ענן לא הוגדר עדיין (ראו SUPABASE_SETUP.md)'; return; }
+    const email=document.getElementById('authEmail').value.trim();
+    if(!email){ errEl.style.color='#ef4444'; errEl.textContent='נא להזין אימייל כדי לשלוח קישור איפוס סיסמה'; return; }
+    const { error } = await Auth.resetPassword(email);
+    errEl.style.color = error ? '#ef4444' : '#16a34a';
+    errEl.textContent = error ? this.authErrHe(error) : 'נשלח אימייל עם קישור לאיפוס סיסמה — בדקו את תיבת הדואר.';
   },
   checkPin(){ const v=document.getElementById('pinInput').value; if(v===Store.data.settings.pin){ document.getElementById('pinHint').textContent='קוד ברירת מחדל: 1234'; this.openDash(); } else { document.getElementById('pinHint').textContent='קוד שגוי, נסו שוב'; } },
 
-  dashKid:'aviv',
+  dashKid:null,
   dashPollTimer:null,
   openDash(){
-    this.dashKid=this.cur||'aviv';
-    document.getElementById('familyCodeInput').value=Sync.code();
+    this.dashKid=this.cur||this.dashKid||Object.keys(Store.data.players)[0];
+    this.updateAccountUI();
     this.renderDash();
     this.show('s-dash');
     Sync.pullAll().then(()=>this.renderDash());   // parent may be checking from a device the boys don't use — grab the latest first
@@ -2221,6 +2651,21 @@ const App={
       b.onclick=()=>{ this.dashKid=id; this.renderDash(); }; tabs.appendChild(b);
     });
     const p=Store.player(this.dashKid);
+    const renameEl=document.getElementById('renameKidInput'); if(renameEl) renameEl.value=p.he;
+    // prominent "where are they right now" summary — world/level/stars/bosses at a glance,
+    // instead of buried as a one-line hint under the skill-mastery bars.
+    const curEl=document.getElementById('dashCurrentStats');
+    if(curEl){
+      const s=this.stats(p);
+      const chip=(label,val)=>'<div class="card" style="min-width:110px;flex:1;text-align:center;padding:12px;margin:0">'+
+        '<div class="hint" style="margin:0">'+label+'</div><div style="font-size:1.5rem;font-weight:900">'+val+'</div></div>';
+      curEl.innerHTML = chip('🗺️ עולם', s.zone)
+        + chip('🔢 שלב', s.lvl)
+        + chip('⭐ כוכבים', s.stars)
+        + chip('👹 בוסים', s.bosses)
+        + chip('⚔️ כוח', s.attack)
+        + chip('🪙 מטבעות', p.coins);
+    }
     const days=[]; for(let i=13;i>=0;i--){ days.push(this.dateStr(new Date(Date.now()-i*864e5))); }
     const mins=days.map(d=>Math.round((p.time[d]||0)/60));
     const maxM=Math.max(5,...mins);
@@ -2237,32 +2682,8 @@ const App={
       document.getElementById('histBars').innerHTML=hist.map(h=>'<div class="bar" style="height:'+(h.avg)+'%;background:linear-gradient(180deg,#4ade80,#22c55e)"><b>'+h.avg+'</b><span>'+h.date.slice(5)+'</span></div>').join('');
     } else document.getElementById('histBars').innerHTML='<p class="hint">עדיין אין מספיק נתונים — יופיע אחרי כמה ימי משחק.</p>';
     this.renderTele();
-    this.renderBugs();
-  },
-  renderBugs(){
-    const el=document.getElementById('bugList'); if(!el) return;
-    const bugs=Store.data.bugs||[];
-    if(!bugs.length){ el.innerHTML='<p class="hint">אין דיווחי באגים עדיין.</p>'; return; }
-    const screenLabel={'s-ex':'תרגול','s-boss':'קרב בוס','s-map':'מפה','s-shop':'חנות','s-bossprep':'לפני קרב בוס'};
-    el.innerHTML=bugs.map(b=>{
-      const when=new Date(b.ts).toLocaleString('he-IL');
-      const who=b.playerName||'—';
-      const where=screenLabel[b.screen]||b.screen||'—';
-      const lvl=b.level?(' · '+b.level):'';
-      let qLine='';
-      if(b.question){
-        const parts=[];
-        if(b.question.prompt) parts.push('שאלה: '+b.question.prompt);
-        if(b.question.heb) parts.push(b.question.heb);
-        if(b.question.say) parts.push('מילה/צליל: <span class="en">'+b.question.say+'</span>');
-        if(b.question.answer) parts.push('תשובה נכונה: <span class="en">'+b.question.answer+'</span>');
-        qLine='<div class="muted" style="font-size:.9rem;margin-top:4px">'+parts.join(' · ')+'</div>';
-      }
-      return '<div class="tele-item" style="display:block;text-align:right">'+
-        '<div><b>'+who+'</b> <span class="muted">· '+where+lvl+' · '+when+'</span></div>'+
-        '<div style="margin-top:4px">"'+b.note.replace(/</g,'&lt;')+'"</div>'+
-        qLine+'</div>';
-    }).join('');
+    // (bug reports moved to the global admin view — see loadAdminBugs/renderAdminBugs — since
+    // Sivan wants to triage them across every family in one place, not per-family here)
   },
   renderTele(){
     const items=Store.data.telemetry.items; const rows=[];
@@ -2286,15 +2707,26 @@ const App={
 
   exportData(){ const blob=new Blob([JSON.stringify(Store.data,null,2)],{type:'application/json'});
     const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='wordquest-backup.json'; a.click(); },
-  exportBugs(){ const blob=new Blob([JSON.stringify(Store.data.bugs||[],null,2)],{type:'application/json'});
-    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='wordquest-bugs.json'; a.click(); },
-  clearBugs(){ if(!confirm('למחוק את כל רשימת הבאגים שדווחו?')) return;
-    Store.data.bugs=[]; Store.save(); this.renderBugs(); },
   resetKid(){ const p=Store.player(this.dashKid); if(!confirm('לאפס את כל ההתקדמות של '+p.he+'?')) return;
     const fresh=Store.freshPlayer(p.en,p.he,p.ava);
     fresh.updatedAt=Date.now(); // stamp "now" (not 0) so a sync merge from another device can't silently un-reset this
     Store.data.players[this.dashKid]=fresh;
     Store.save(this.dashKid); this.renderDash(); },
+  // permanently removes a player profile (local + cloud) — for cleaning up unused placeholder
+  // slots (e.g. the generic "Player 1"/"Player 2" every new account starts with) or any profile
+  // a parent genuinely wants gone. Unlike resetKid, this doesn't leave an empty slot behind.
+  async deleteKid(){
+    const ids=Object.keys(Store.data.players);
+    if(ids.length<=1){ alert('לא ניתן למחוק את השחקן היחיד שנשאר.'); return; }
+    const p=Store.player(this.dashKid);
+    if(!confirm('למחוק לצמיתות את '+p.he+'? לא ניתן לבטל פעולה זו.')) return;
+    delete Store.data.players[this.dashKid];
+    Store.saveLocalOnly();
+    try{ await Sync.deletePlayer(this.dashKid); }
+    catch(e){ console.warn('[Sync] cloud delete failed (profile removed locally anyway)', e); }
+    this.dashKid=Object.keys(Store.data.players)[0];
+    this.renderDash(); this.renderProfiles();
+  },
 
   /* ---------- REPORT A BUG ----------
      Floating button visible on every screen. Logs whatever question/level was on screen
@@ -2327,7 +2759,8 @@ const App={
     const bug={
       id:'bug_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
       ts:Date.now(), player:this.cur||null, playerName:p?p.he:null,
-      screen, level:ctx.level, question:ctx.question, note:txt
+      screen, level:ctx.level, question:ctx.question, note:txt,
+      status:'todo'   // 'todo' | 'fixed' | 'ignored' — managed from the global admin view
     };
     if(!Store.data.bugs) Store.data.bugs=[];
     Store.data.bugs.unshift(bug);
