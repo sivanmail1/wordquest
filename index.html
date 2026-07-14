@@ -651,11 +651,14 @@ const VERSION='1.7.1';
 const SUPABASE_URL='https://ajbtjnudczzezqrcphlv.supabase.co';
 const SUPABASE_ANON_KEY='sb_publishable_o6uEu5SDmUZK0Q06ZDcM2A_WBYz5sZl';
 const ZONE_LEN=10;   // levels per zone; the last level of each zone is the boss battle
-const BOSS_TARGET_HITS=55;   // roughly how many correct answers a fresh-geared player needs to beat a boss (grows per zone).
-                              // Raised from 40 — since HP scales with the player's OWN attack (baseDmg), buying
-                              // stronger gear over time was keeping every boss at the same ~40-hit difficulty
-                              // forever, even as coins/gear/extra hearts piled up. Bosses should stay a real
-                              // fight as the family's economy grows, not get relatively easier.
+// Boss HP is now a FIXED absolute scale, independent of the player's own attack stat — world 1's
+// Boss HP is computed from the game's OWN economy (see Engine.bossHP below), not an arbitrary
+// number: how many coins a player has realistically earned by that world, what that buys in the
+// shop (respecting unlockWorld tiers), and how many hits that should translate to. Tuning knobs:
+const COINS_PER_PRACTICE_LEVEL=72;  // rough average: ~10/12 correct first-try (~60 coins) + ~12 completion bonus
+const BOSS_GEAR_BUDGET_SHARE=0.6;   // assume ~60% of earned coins go to permanent gear/avatar upgrades, the
+                                     // rest to potions/experimentation — not a min-maxed 100% spend
+const BOSS_TARGET_HITS=40;          // correct hits a REASONABLY (not maximally) geared player should need
 const DAILY_GOAL=20; // correct answers needed in a day to complete the daily goal
 const DAILY_BONUS=25; // coin reward for completing the daily goal (once per day)
 // ---------- ACHIEVEMENTS ("מחסן הישגים") — 10 fixed badges, checked in App.checkAchievements ----------
@@ -1674,32 +1677,38 @@ const Tele={
 /* ---------- SHOP (coin sink: characters, gear, backgrounds) ---------- */
 const Shop={
   // COOL characters for 9-10 y/o boys — ninjas, robots, beasts, monsters, dragons.
-  // unlockWorld: the world the player must have REACHED (not necessarily beaten) before an item
-  // becomes purchasable — retroactively gates the pricier existing items, and gates the new
-  // "prestige" items added below at worlds 4/7/10 (i.e. every 3 worlds), per Sivan's request.
+  // unlockWorld: the world the player must have REACHED before an item becomes purchasable.
+  // Every ORIGINAL item is unlockWorld:1 (always available) — they were visible/buyable before
+  // any locking existed, so re-locking them after the fact wasn't fair to kids who'd already
+  // seen them. Only the NEW items below (added specifically as locked content) gate progress,
+  // spread across worlds 2/4/6 so the whole locked set is done unlocking by world 6.
   avatars:[
     {e:'🥷',price:0,unlockWorld:1},{e:'🦖',price:0,unlockWorld:1},          // free starters
     {e:'🤖',price:250,unlockWorld:1},{e:'👾',price:250,unlockWorld:1},{e:'👽',price:300,unlockWorld:1},{e:'🐺',price:300,unlockWorld:1},
     {e:'🦅',price:320,unlockWorld:1},{e:'🦈',price:350,unlockWorld:1},{e:'🐍',price:300,unlockWorld:1},{e:'🦂',price:350,unlockWorld:1},
-    {e:'🕷️',price:320,unlockWorld:1},{e:'🦇',price:340,unlockWorld:1},{e:'🦍',price:420,unlockWorld:4},{e:'🐆',price:420,unlockWorld:4},
-    {e:'🧙',price:500,unlockWorld:4},{e:'🦸',price:600,unlockWorld:4},{e:'🧛',price:600,unlockWorld:4},{e:'🧟',price:650,unlockWorld:7},
-    {e:'👹',price:700,unlockWorld:7},{e:'👺',price:700,unlockWorld:7},{e:'🤡',price:500,unlockWorld:4},{e:'💀',price:900,unlockWorld:7},
-    {e:'☠️',price:1000,unlockWorld:10},{e:'🐉',price:1500,unlockWorld:10},  // legendary
-    // new prestige tier — unlocked every 3 worlds, per Sivan's request
-    {e:'🦄',price:1100,unlockWorld:4},{e:'🐙',price:1700,unlockWorld:7},{e:'🦁',price:2200,unlockWorld:10}
+    {e:'🕷️',price:320,unlockWorld:1},{e:'🦇',price:340,unlockWorld:1},{e:'🦍',price:420,unlockWorld:1},{e:'🐆',price:420,unlockWorld:1},
+    {e:'🧙',price:500,unlockWorld:1},{e:'🦸',price:600,unlockWorld:1},{e:'🧛',price:600,unlockWorld:1},{e:'🧟',price:650,unlockWorld:1},
+    {e:'👹',price:700,unlockWorld:1},{e:'👺',price:700,unlockWorld:1},{e:'🤡',price:500,unlockWorld:1},{e:'💀',price:900,unlockWorld:1},
+    {e:'☠️',price:1000,unlockWorld:1},{e:'🐉',price:1500,unlockWorld:1},  // legendary
+    // NEW locked content — unlocks progressively through world 6
+    {e:'🦄',price:1100,unlockWorld:2},{e:'🦉',price:1200,unlockWorld:2},
+    {e:'🐙',price:1700,unlockWorld:4},{e:'🦔',price:1750,unlockWorld:4},
+    {e:'🦁',price:2200,unlockWorld:6},{e:'🐊',price:2300,unlockWorld:6}
   ],
   // GEAR: weapons / props / clothing — equip one; each adds POWER; owning all builds a collection
   gear:[
     {e:'🎩',price:150,power:5,unlockWorld:1},{e:'🕶️',price:200,power:6,unlockWorld:1},{e:'🎧',price:200,power:6,unlockWorld:1},
     {e:'🧢',price:180,power:5,unlockWorld:1},{e:'🥽',price:220,power:7,unlockWorld:1},
     {e:'🗡️',price:250,power:12,unlockWorld:1},{e:'🔪',price:220,power:10,unlockWorld:1},{e:'🪓',price:300,power:14,unlockWorld:1},
-    {e:'🏹',price:350,power:16,unlockWorld:1},{e:'🛡️',price:350,power:16,unlockWorld:1},{e:'🔫',price:400,power:18,unlockWorld:4},
+    {e:'🏹',price:350,power:16,unlockWorld:1},{e:'🛡️',price:350,power:16,unlockWorld:1},{e:'🔫',price:400,power:18,unlockWorld:1},
     {e:'💣',price:300,power:14,unlockWorld:1},{e:'🔨',price:280,power:12,unlockWorld:1},{e:'🥊',price:260,power:12,unlockWorld:1},
-    {e:'🪄',price:500,power:22,unlockWorld:4},{e:'🔥',price:550,power:24,unlockWorld:4},{e:'⚡',price:600,power:26,unlockWorld:4},
-    {e:'🚀',price:800,power:35,unlockWorld:7},{e:'👑',price:900,power:40,unlockWorld:7},{e:'💎',price:1000,power:45,unlockWorld:10},
-    {e:'🏆',price:1200,power:50,unlockWorld:10},{e:'🔱',price:1500,power:60,unlockWorld:10},
-    // new prestige tier — unlocked every 3 worlds, per Sivan's request
-    {e:'⚔️',price:1300,power:55,unlockWorld:4},{e:'🛸',price:1900,power:75,unlockWorld:7},{e:'🧨',price:2400,power:95,unlockWorld:10}
+    {e:'🪄',price:500,power:22,unlockWorld:1},{e:'🔥',price:550,power:24,unlockWorld:1},{e:'⚡',price:600,power:26,unlockWorld:1},
+    {e:'🚀',price:800,power:35,unlockWorld:1},{e:'👑',price:900,power:40,unlockWorld:1},{e:'💎',price:1000,power:45,unlockWorld:1},
+    {e:'🏆',price:1200,power:50,unlockWorld:1},{e:'🔱',price:1500,power:60,unlockWorld:1},
+    // NEW locked content — unlocks progressively through world 6
+    {e:'⚔️',price:1300,power:55,unlockWorld:2},{e:'🪃',price:1350,power:57,unlockWorld:2},
+    {e:'🛸',price:1900,power:75,unlockWorld:4},{e:'🥋',price:1950,power:78,unlockWorld:4},
+    {e:'🧨',price:2400,power:95,unlockWorld:6},{e:'🎯',price:2450,power:98,unlockWorld:6}
   ],
   // BACKGROUNDS: richer, layered gradients (starfields, lava, neon) — not flat colors
   themes:[
@@ -1707,16 +1716,19 @@ const Shop={
     {id:'ocean', name:'מעמקי הים',price:250,unlockWorld:1,css:'radial-gradient(circle at 50% -10%,#22d3ee,transparent 45%),linear-gradient(180deg,#0891b2,#0e7490,#083344)'},
     {id:'sunset',name:'שקיעה',price:300,unlockWorld:1,css:'linear-gradient(160deg,#fb7185,#f59e0b 45%,#7c3aed)'},
     {id:'forest',name:'יער קסום',price:300,unlockWorld:1,css:'radial-gradient(circle at 80% 10%,#a3e635,transparent 40%),linear-gradient(160deg,#22c55e,#15803d,#052e16)'},
-    {id:'aurora',name:'זוהר הקוטב',price:450,unlockWorld:4,css:'linear-gradient(160deg,#00c9ff,#92fe9d 45%,#7b2ff7)'},
-    {id:'lava',  name:'לבה',price:500,unlockWorld:4,css:'radial-gradient(circle at 50% 120%,#fde047,#f97316 30%,#ef4444 55%,#7f1d1d 85%)'},
-    {id:'neon',  name:'ניאון',price:550,unlockWorld:4,css:'linear-gradient(135deg,#00f5d4,#7b2ff7 50%,#f107a3)'},
-    {id:'cyber', name:'סייבר',price:600,unlockWorld:4,css:'repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 1px,transparent 1px 22px),linear-gradient(135deg,#0ea5e9,#4f46e5,#8b5cf6)'},
-    {id:'galaxy',name:'גלקסיה',price:750,unlockWorld:7,css:'radial-gradient(circle at 30% 30%,#a855f7,transparent 55%),radial-gradient(circle at 70% 75%,#3b82f6,transparent 50%),linear-gradient(#0b1026,#111827)'},
-    {id:'space', name:'חלל עמוק',price:900,unlockWorld:7,css:'radial-gradient(1.5px 1.5px at 20% 30%,#fff,transparent),radial-gradient(1.5px 1.5px at 65% 65%,#fff,transparent),radial-gradient(1px 1px at 80% 20%,#fff,transparent),radial-gradient(1px 1px at 35% 80%,#fff,transparent),radial-gradient(2px 2px at 75% 42%,#fff,transparent),radial-gradient(1px 1px at 50% 15%,#fff,transparent),linear-gradient(160deg,#0b1026,#1e1b4b 60%,#3b0764)'},
-    // new prestige tier — unlocked every 3 worlds, per Sivan's request
-    {id:'phoenix',name:'עוף החול',price:1000,unlockWorld:4,css:'radial-gradient(circle at 50% 100%,#fde047,#f97316 35%,#7c2d12 75%),linear-gradient(160deg,#450a0a,#1c0a0a)'},
-    {id:'nebula', name:'ערפילית',price:1500,unlockWorld:7,css:'radial-gradient(circle at 25% 25%,#f472b6,transparent 50%),radial-gradient(circle at 75% 70%,#38bdf8,transparent 50%),linear-gradient(#0f0a1e,#1e1033)'},
-    {id:'infinity',name:'אינסוף',price:2000,unlockWorld:10,css:'conic-gradient(from 180deg,#7c3aed,#db2777,#f59e0b,#22d3ee,#7c3aed)'}
+    {id:'aurora',name:'זוהר הקוטב',price:450,unlockWorld:1,css:'linear-gradient(160deg,#00c9ff,#92fe9d 45%,#7b2ff7)'},
+    {id:'lava',  name:'לבה',price:500,unlockWorld:1,css:'radial-gradient(circle at 50% 120%,#fde047,#f97316 30%,#ef4444 55%,#7f1d1d 85%)'},
+    {id:'neon',  name:'ניאון',price:550,unlockWorld:1,css:'linear-gradient(135deg,#00f5d4,#7b2ff7 50%,#f107a3)'},
+    {id:'cyber', name:'סייבר',price:600,unlockWorld:1,css:'repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 1px,transparent 1px 22px),linear-gradient(135deg,#0ea5e9,#4f46e5,#8b5cf6)'},
+    {id:'galaxy',name:'גלקסיה',price:750,unlockWorld:1,css:'radial-gradient(circle at 30% 30%,#a855f7,transparent 55%),radial-gradient(circle at 70% 75%,#3b82f6,transparent 50%),linear-gradient(#0b1026,#111827)'},
+    {id:'space', name:'חלל עמוק',price:900,unlockWorld:1,css:'radial-gradient(1.5px 1.5px at 20% 30%,#fff,transparent),radial-gradient(1.5px 1.5px at 65% 65%,#fff,transparent),radial-gradient(1px 1px at 80% 20%,#fff,transparent),radial-gradient(1px 1px at 35% 80%,#fff,transparent),radial-gradient(2px 2px at 75% 42%,#fff,transparent),radial-gradient(1px 1px at 50% 15%,#fff,transparent),linear-gradient(160deg,#0b1026,#1e1b4b 60%,#3b0764)'},
+    // NEW locked content — unlocks progressively through world 6
+    {id:'phoenix',name:'עוף החול',price:1000,unlockWorld:2,css:'radial-gradient(circle at 50% 100%,#fde047,#f97316 35%,#7c2d12 75%),linear-gradient(160deg,#450a0a,#1c0a0a)'},
+    {id:'sakura', name:'פריחת דובדבן',price:1050,unlockWorld:2,css:'radial-gradient(circle at 30% 20%,#fbcfe8,transparent 50%),linear-gradient(160deg,#f9a8d4,#f472b6 60%,#be185d)'},
+    {id:'nebula', name:'ערפילית',price:1500,unlockWorld:4,css:'radial-gradient(circle at 25% 25%,#f472b6,transparent 50%),radial-gradient(circle at 75% 70%,#38bdf8,transparent 50%),linear-gradient(#0f0a1e,#1e1033)'},
+    {id:'arctic', name:'קרח נצחי',price:1550,unlockWorld:4,css:'radial-gradient(circle at 50% 0%,#e0f2fe,transparent 50%),linear-gradient(180deg,#7dd3fc,#0284c7,#0c4a6e)'},
+    {id:'infinity',name:'אינסוף',price:2000,unlockWorld:6,css:'conic-gradient(from 180deg,#7c3aed,#db2777,#f59e0b,#22d3ee,#7c3aed)'},
+    {id:'void',   name:'חור שחור',price:2050,unlockWorld:6,css:'radial-gradient(circle at 50% 50%,#000,#1e1b4b 55%,#000 100%)'}
   ],
   // POTIONS: consumables that help win the (hard) boss battles
   potions:[
@@ -1744,7 +1756,28 @@ const Shop={
   // cooler / pricier characters hit harder; equipped weapon adds its power. Both raise your ATTACK.
   avatarAttack(e){ const a=this.avatars.find(x=>x.e===e); return a ? (3+Math.floor(a.price/60)) : 3; },
   gearPower(e){ const g=this.gear.find(x=>x.e===e); return g?g.power:0; },
-  attack(p){ return this.avatarAttack(p.ava) + (p.equippedGear ? this.gearPower(p.equippedGear) : 0); }
+  attack(p){ return this.avatarAttack(p.ava) + (p.equippedGear ? this.gearPower(p.equippedGear) : 0); },
+
+  // --- boss-difficulty economy model (see Engine.bossHP / App.bossHP) ---
+  // best single GEAR item affordable & already-unlocked for a given world, maximizing power.
+  bestUnlockedGear(budget, world){
+    return this.gear.filter(g=>(g.unlockWorld||1)<=world && g.price<=budget)
+      .reduce((best,g)=> (!best || g.power>best.power) ? g : best, null);
+  },
+  // best achievable ATTACK total (avatar + gear) for a coin budget, respecting shop unlock tiers —
+  // tries every affordable+unlocked avatar (plus "no avatar upgrade, just the free starter"),
+  // spends the remainder on the best affordable+unlocked gear, keeps the best combo found.
+  bestAttackForBudget(budget, world){
+    let best=3; // free-starter avatar attack, no gear equipped
+    const avatarChoices=this.avatars.filter(a=>(a.unlockWorld||1)<=world && a.price<=budget).concat([{e:null,price:0}]);
+    avatarChoices.forEach(a=>{
+      const remain=budget-a.price;
+      const g=this.bestUnlockedGear(remain,world);
+      const atk=(a.e?this.avatarAttack(a.e):3) + (g?g.power:0);
+      if(atk>best) best=atk;
+    });
+    return best;
+  }
 };
 
 /* ---------- APP ---------- */
@@ -1931,21 +1964,24 @@ const App={
       const equipped = it.kind==='avatar' ? p.ava===it.key
         : it.kind==='gear' ? p.equippedGear===it.key
         : (p.theme||'default')===it.key;
-      // locked = not yet reached the world this item unlocks at — hidden behind a 🔒, not
-      // purchasable, regardless of coins on hand (see Shop.buy's own unlockWorld check too).
+      // locked = not yet reached the world this item unlocks at — still shown with its full
+      // icon/power/price (kids can see exactly what's coming and aim for it), just greyed out
+      // with a lock badge overlay, and not purchasable (see Shop.buy's own unlockWorld check too).
       const locked = !owned && it.unlockWorld && Shop.currentWorld(p)<it.unlockWorld;
-      const card=document.createElement('div'); card.className='shopitem'; card.style.opacity=locked?'.55':'1';
+      const card=document.createElement('div'); card.className='shopitem'; card.style.position='relative';
+      if(locked){ card.style.opacity='.6'; card.style.filter='grayscale(.4)'; }
       const visual = it.kind==='theme'
         ? '<div class="themeprev" style="background:'+it.css+'"></div><div class="nm2">'+it.name+'</div>'
-        : '<div class="ic">'+(locked?'🔒':it.key)+'</div>'+
-          (locked ? '' : it.kind==='gear' ? '<div class="pw">⚔️ '+it.power+'</div>'
+        : '<div class="ic">'+it.key+'</div>'+
+          (it.kind==='gear' ? '<div class="pw">⚔️ '+it.power+'</div>'
            : it.kind==='avatar' ? '<div class="pw">⚔️ '+Shop.avatarAttack(it.key)+'</div>' : '');
+      const lockBadge = locked ? '<div style="position:absolute;top:8px;left:8px;background:rgba(15,23,42,.75);color:#fff;border-radius:999px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:.95rem">🔒</div>' : '';
       let btnHtml;
-      if(locked) btnHtml='<div class="pr" style="color:#94a3b8">🔒 נפתח בעולם '+it.unlockWorld+'</div>';
+      if(locked) btnHtml='<div class="pr">🪙 '+it.price+'</div><div class="pd" style="font-size:.72rem;color:#94a3b8;font-weight:800;margin-top:2px">נפתח בעולם '+it.unlockWorld+'</div>';
       else if(equipped) btnHtml='<button class="equipped" data-act="equip">'+(it.kind==='gear'?'הסר':'מוגדר ✓')+'</button>';
       else if(owned) btnHtml='<button class="owned" data-act="equip">בחר</button>';
       else btnHtml='<div class="pr">🪙 '+it.price+'</div><button data-act="buy">קנה</button>';
-      card.innerHTML=visual+btnHtml;
+      card.innerHTML=lockBadge+visual+btnHtml;
       const b=card.querySelector('button[data-act]');
       if(b) b.onclick=()=>{
         if(b.dataset.act==='buy'){
@@ -2448,11 +2484,24 @@ const App={
     this.boss={ lv, world, use:{}, pool:Engine.bossPool(world) };
     this.renderPrep(); this.show('s-bossprep');
   },
-  // shared HP formula so the prep-screen estimate and the real battle never drift apart —
-  // anchored to BOSS_TARGET_HITS correct answers at the player's CURRENT damage, growing per
-  // zone. Per-world growth raised from 0.12 to 0.18 so later worlds ramp up faster too, on top
-  // of the higher BOSS_TARGET_HITS baseline above.
-  bossHP(world,baseDmg){ return Math.round(BOSS_TARGET_HITS*baseDmg*(1+(world-1)*0.18)); },
+  // Boss HP grounded in the game's own economy: how many coins a player has realistically earned
+  // by this world (this world's own 9 practice levels + every earlier world's practice + every
+  // already-won boss's reward — see cumulativeWorldCoins), what BOSS_GEAR_BUDGET_SHARE of that
+  // buys as the best affordable+unlocked avatar/gear combo (Shop.bestAttackForBudget — correctly
+  // respects the world-2/4/6 shop unlock tiers), and BOSS_TARGET_HITS correct answers at that
+  // resulting damage. Shared by the prep-screen estimate and the real battle so they never drift.
+  cumulativeWorldCoins(world){
+    let total=0;
+    for(let w=1; w<=world; w++) total += COINS_PER_PRACTICE_LEVEL*(ZONE_LEN-1);
+    for(let w=1; w<world; w++) total += 40+w*20;   // boss reward formula — see bossWin()
+    return total;
+  },
+  bossHP(world){
+    const budget = Math.round(this.cumulativeWorldCoins(world) * BOSS_GEAR_BUDGET_SHARE);
+    const attack = Shop.bestAttackForBudget(budget, world);
+    const baseDmg = 5 + attack;
+    return Math.round(baseDmg*BOSS_TARGET_HITS/10)*10;   // rounded to a clean multiple of 10
+  },
   renderPrep(){
     const p=Store.player(this.cur), bs=this.boss;
     document.getElementById('prepBossEmoji').textContent=this.bossEmoji(bs.world);
@@ -2462,7 +2511,7 @@ const App={
     document.getElementById('prepHearts').textContent=3+(bs.use.shield?1:0)+(p.bonusHearts||0);
     const estDmg=5+Shop.attack(p);
     document.getElementById('prepDmg').textContent='כל תשובה נכונה פוגעת ב‑'+estDmg+' בבוס 💥 (רצף של 3+ תשובות נכונות מוסיף עוד +3!) — דמות וציוד חזקים יותר = פגיעה חזקה יותר!';
-    const estHP=this.bossHP(bs.world,estDmg);
+    const estHP=this.bossHP(bs.world);
     document.getElementById('prepQEst').textContent='🎯 לבוס יש '+estHP+' נקודות חיים — בערך '+Math.ceil(estHP/estDmg)+' תשובות נכונות עד ניצחון (פחות אם תצברו רצף או תשתמשו בחיזוקים) · 3 טעויות = הפסד';
     // show which skill/type pairs THIS boss draws from, so it's clear it only tests what this area covered
     const pbox=document.getElementById('prepPool'); pbox.innerHTML='';
@@ -2492,7 +2541,7 @@ const App={
     // consume the potions the player chose to use
     ['dmg','shield','crit'].forEach(id=>{ if(bs.use[id]){ if((p.potions[id]||0)>0) p.potions[id]--; else bs.use[id]=false; } });
     bs.baseDmg = 5 + Shop.attack(p);    // your character + equipped weapon = damage per correct answer
-    bs.bossMaxHP = this.bossHP(bs.world, bs.baseDmg);   // ~BOSS_TARGET_HITS hits at current strength, tougher each zone
+    bs.bossMaxHP = this.bossHP(bs.world);   // economy-based HP for this world — see App.bossHP
     bs.hp = bs.bossMaxHP;
     bs.maxHearts = 3 + (bs.use.shield?1:0) + (p.bonusHearts||0);   // permanent boss-win bonus stacks with the shield potion
     bs.hearts = bs.maxHearts;
