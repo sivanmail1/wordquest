@@ -644,7 +644,7 @@
 "use strict";
 /* Version: semver major.minor.patch — bump the patch for each small change, minor for a
    meaningful feature, major for a big new phase (e.g. the multi-account/auth rewrite). */
-const VERSION='1.7.1';
+const VERSION='1.7.2';
 /* ---- CLOUD SYNC CONFIG ----
    Both are safe to leave in this file — the anon/publishable key is meant to be
    public; real protection comes from the per-family "sync code" each device enters. */
@@ -1128,40 +1128,18 @@ const WORDS=[
   {w:'robot',e:'🤖',d:3},{w:'ghost',e:'👻',d:3},{w:'crystal',e:'💎',d:4},
   // --- added v5.7: a few extra simple D/F/S words so World 3's pool reaches 30+ words ---
   {w:'doll',e:'🪆',d:2},{w:'fan',e:'🪭',d:1},{w:'soap',e:'🧼',d:2},
-  // --- added v5.8: World 5 Minecraft-themed vocabulary — pictures use PIXEL_ICONS (see below)
-  // instead of an emoji; the `e` field below is just a text fallback for any spot that hasn't
-  // been upgraded to pixel rendering yet. ---
-  {w:'diamond',e:'💎',d:3},{w:'emerald',e:'💚',d:3},{w:'gold',e:'🥇',d:2},{w:'redstone',e:'🔴',d:3},
-  {w:'tnt',e:'🧨',d:2},{w:'pickaxe',e:'⛏️',d:3},{w:'sword',e:'⚔️',d:2},{w:'creeper',e:'👹',d:2},
-  {w:'zombie',e:'🧟',d:2},{w:'wolf',e:'🐺',d:2}
+  // --- added v5.9: World 5 vocabulary — a fantasy/space theme (swapped out from the earlier
+  // Minecraft-themed set, which leaned on one game's branding too heavily). 5 of these reuse
+  // words already defined above (rocket/robot/ghost/dinosaur/crystal); 5 are brand new. ---
+  {w:'dragon',e:'🐉',d:3},{w:'castle',e:'🏰',d:3},{w:'unicorn',e:'🦄',d:3},
+  {w:'alien',e:'👽',d:3},{w:'planet',e:'🪐',d:3}
 ];
 
-// Pixel-art icons for the World 5 Minecraft-themed words — an 8x8 grid rendered in CSS, drawn to
-// evoke (not copy) the real in-game textures. '.' = transparent; every other char is a color
-// looked up per-icon in its own legend. Kept separate from WORDS.e (which stays a plain-text
-// emoji fallback for any render path that hasn't been switched to Pixel.render() yet).
-const PIXEL_ICONS = {
-  diamond:{legend:{o:'#145252',D:'#5CDBD3',d:'#2AA198',h:'#E8FFFC'},rows:[
-    '..oooo..','.oDDDDo.','oDhDDdDo','oDDDDDDo','.oDdDDo.','..oDDo..','...oo...','........']},
-  emerald:{legend:{o:'#0B4A2A',D:'#17C964',d:'#0E7C3F',h:'#8CF5B0'},rows:[
-    '..oooo..','.oDDDDo.','oDhDDdDo','oDDDDDDo','.oDdDDo.','..oDDo..','...oo...','........']},
-  gold:{legend:{o:'#6B5416',G:'#FFD700',g:'#C9A227',h:'#FFF6B0'},rows:[
-    '........','........','..oooo..','.oGGGGo.','.oGhgGo.','oGGGGGGo','oggggggo','.oooooo.']},
-  redstone:{legend:{R:'#FF3B30',r:'#7A0000',C:'#FFD1C4'},rows:[
-    '...RR...','..RrrR..','.RrCCrR.','RrCCCCrR','RrCCCCrR','.RrCCrR.','..RrrR..','...RR...']},
-  tnt:{legend:{R:'#C1272D',W:'#F5F5F5',K:'#1A1A1A',r:'#7A1418'},rows:[
-    'RRRRRRRR','RRRRRRRR','WWWWWWWW','WKWKKWKW','WKWKKWKW','WWWWWWWW','RRRRRRRR','rrrrrrrr']},
-  pickaxe:{legend:{H:'#B0B0B0',h:'#6E6E6E',S:'#8B5A2B',s:'#5A3A1B'},rows:[
-    'HHhh....','HhhhH...','hHhhHh..','..ShHh..','...Sh...','....Sh..','.....Sh.','......Ss']},
-  sword:{legend:{B:'#E8E8E8',b:'#A0A0A0',G:'#E0B000',S:'#6E4420',g:'#4A2C10'},rows:[
-    '.......B','......Bb','.....Bb.','....Bb..','...Bb...','..GG....','..Sg....','..Sg....']},
-  creeper:{legend:{G:'#6BBF59',K:'#141414'},rows:[
-    'GGGGGGGG','GGGGGGGG','GKKGGKKG','GKKGGKKG','GGKKKKGG','GKKGGKKG','GKKGGKKG','GGGGGGGG']},
-  zombie:{legend:{Z:'#7A9B5C',K:'#141414',M:'#2E4A22',B:'#3355AA'},rows:[
-    'ZZZZZZZZ','ZZZZZZZZ','ZKKZZKKZ','ZKKZZKKZ','ZZZZZZZZ','ZZMMMMZZ','BBBBBBBB','BBBBBBBB']},
-  wolf:{legend:{F:'#9E9E9E',f:'#6E6E6E',W:'#F5F5F5',N:'#1A1A1A',E:'#3A2A1A'},rows:[
-    'F......F','FF....FF','FfFFFFfF','FEFWWFEF','FFWWWWFF','.FWNWWF.','..FWWF..','...FF...']}
-};
+// Pixel-art icons — kept for any words that want a hand-drawn 8x8 look instead of a plain emoji;
+// none of the current World 5 words need one (they all render fine from WORDS.e), so this is
+// intentionally empty. Pixel.render() already falls back to the emoji automatically when a word
+// has no entry here.
+const PIXEL_ICONS = {};
 const Pixel={
   render(word,size){
     const icon=word&&PIXEL_ICONS[word]; if(!icon) return null;
@@ -1220,13 +1198,13 @@ const WORLD_LEVEL_TEMPLATE = [
 ];
 
 // World 5 — simple sentences, built from every noun taught in Worlds 2-4 plus 10 new
-// Minecraft-themed nouns (WORLD_WORDS[5], pixel-art pictures via PIXEL_ICONS) and a small set of
+// fantasy/space-themed nouns (WORLD_WORDS[5]) and a small set of
 // glue words (articles/verbs/adjectives — not picturable, so not in WORDS). The 3 new-vocab
 // levels are interleaved AMONG the 6 sentence levels (not bunched at the start) so the world feels
 // varied, and every sentence level after a new word is introduced keeps pulling it back into
 // rotation — new vocabulary doesn't get parked, it resurfaces the rest of the world (and beyond).
 const GLUE_WORDS=['I','a','the','is','can','see','like','have','has','my','in','big','small'];
-WORLD_WORDS[5] = WORDS.filter(w=>['diamond','emerald','gold','redstone','tnt','pickaxe','sword','creeper','zombie','wolf'].includes(w.w));
+WORLD_WORDS[5] = WORDS.filter(w=>['rocket','robot','ghost','dinosaur','crystal','dragon','castle','unicorn','alien','planet'].includes(w.w));
 // sentence bank: `noun` is the WORDS.w key used for the picture; `words` tokenizes `s` exactly
 // (last token keeps its punctuation) so wordOrder can scramble/rebuild it.
 const SENTENCE_BANK=[
@@ -1249,16 +1227,16 @@ const SENTENCE_BANK=[
   {s:'I see a duck.', noun:'duck', words:['I','see','a','duck.']},
   {s:'My frog is small.', noun:'frog', words:['My','frog','is','small.']},
   {s:'I can see the moon.', noun:'moon', words:['I','can','see','the','moon.']},
-  {s:'I have a diamond.', noun:'diamond', words:['I','have','a','diamond.']},
-  {s:'The emerald is big.', noun:'emerald', words:['The','emerald','is','big.']},
-  {s:'I have gold.', noun:'gold', words:['I','have','gold.']},
-  {s:'I see redstone.', noun:'redstone', words:['I','see','redstone.']},
-  {s:'I have TNT.', noun:'tnt', words:['I','have','TNT.']},
-  {s:'I have a pickaxe.', noun:'pickaxe', words:['I','have','a','pickaxe.']},
-  {s:'I have a sword.', noun:'sword', words:['I','have','a','sword.']},
-  {s:'The creeper is big.', noun:'creeper', words:['The','creeper','is','big.']},
-  {s:'I see a zombie.', noun:'zombie', words:['I','see','a','zombie.']},
-  {s:'The wolf is big.', noun:'wolf', words:['The','wolf','is','big.']}
+  {s:'I see a rocket.', noun:'rocket', words:['I','see','a','rocket.']},
+  {s:'I have a robot.', noun:'robot', words:['I','have','a','robot.']},
+  {s:'I see a ghost.', noun:'ghost', words:['I','see','a','ghost.']},
+  {s:'The dinosaur is big.', noun:'dinosaur', words:['The','dinosaur','is','big.']},
+  {s:'I have a crystal.', noun:'crystal', words:['I','have','a','crystal.']},
+  {s:'The dragon is big.', noun:'dragon', words:['The','dragon','is','big.']},
+  {s:'I see a castle.', noun:'castle', words:['I','see','a','castle.']},
+  {s:'I have a unicorn.', noun:'unicorn', words:['I','have','a','unicorn.']},
+  {s:'The alien is small.', noun:'alien', words:['The','alien','is','small.']},
+  {s:'I see a planet.', noun:'planet', words:['I','see','a','planet.']}
 ];
 const SENTENCE_NOUNS=[...new Set(SENTENCE_BANK.map(s=>s.noun))].map(w=>WORDS.find(x=>x.w===w)).filter(Boolean);
 // World 5's own 9-level curriculum — the 3 new-vocab levels (2, 5, 8) sit BETWEEN sentence
@@ -1266,14 +1244,14 @@ const SENTENCE_NOUNS=[...new Set(SENTENCE_BANK.map(s=>s.noun))].map(w=>WORDS.fin
 // (mirrors the gradual-introduction pattern used in Worlds 2-4).
 const WORLD5_LEVEL_TEMPLATE = [
   {skill:'sentences', type:'pickPic'},        // level 1: sentence -> picture, multiple choice
-  {skill:'sounds',    type:'pickFirst'},      // level 2 (NEW VOCAB): first letter of a new Minecraft word
+  {skill:'sounds',    type:'pickFirst'},      // level 2 (NEW VOCAB): first letter of a new World 5 word
   {skill:'sentences', type:'pic2sentence'},   // level 3: picture -> sentence, multiple choice
   {skill:'sentences', type:'fillBlankMC'},    // level 4: fill the missing word, multiple choice
-  {skill:'words',     type:'pickPic'},        // level 5 (NEW VOCAB): match a new Minecraft word to its picture
+  {skill:'words',     type:'pickPic'},        // level 5 (NEW VOCAB): match a new World 5 word to its picture
   {skill:'sentences', type:'wordOrder'},      // level 6: tap scrambled words into the right order
-  {skill:'sentences', type:'fillBlankTyped'}, // level 7: fill the missing word, typed
+  {skill:'sentences', type:'fillBlankGlueMC'},// level 7: sentence is played, pick the missing GLUE word (multiple choice)
   {skill:'words',     type:'typeMissing'},    // level 8 (NEW VOCAB): type the missing letter of a new word
-  {skill:'sentences', type:'typeSentencePic'} // level 9: type the whole sentence from a picture — capstone
+  {skill:'sentences', type:'fillBlankGlueMC'} // level 9: sentence is played, pick the missing GLUE word (multiple choice) — capstone, no typing required
 ];
 const SKILL_HE={letters:'זיהוי אותיות',sounds:'צלילים (פוֹנטיקה)',words:'אוצר מילים',listening:'הקשבה',sentences:'משפטים פשוטים'};
 const SKILL_COLOR={letters:'#60a5fa',sounds:'#a855f7',words:'#22c55e',listening:'#f59e0b',sentences:'#ef4444'};
@@ -1286,7 +1264,7 @@ const SKILL_TYPES={
   sounds:   ['pickFirst','typeFirstPic','typeFirstAudio','typeLastPic'],
   words:    ['pickPic','typeWordPic','typeMissing','typeUnscramble'],
   listening:['pickAudio','typeWordAudio','typeMissingAudio','typeFirstAudio'],
-  sentences:['pickPic','pic2sentence','fillBlankMC','wordOrder','fillBlankTyped','typeSentencePic']
+  sentences:['pickPic','pic2sentence','fillBlankMC','wordOrder','fillBlankTyped','typeSentencePic','fillBlankGlueMC']
 };
 const TYPE_HE={
   letters:{caseU2L:'התאמה: גדולה→קטנה',caseL2U:'התאמה: קטנה→גדולה',audio:'זיהוי צליל אות',
@@ -1296,7 +1274,8 @@ const TYPE_HE={
   words:{pickPic:'התאמת מילה לתמונה',typeWordPic:'הקלדת מילה מתמונה',typeMissing:'השלמת אות חסרה',typeUnscramble:'סידור אותיות למילה'},
   listening:{pickAudio:'הקשבה ובחירה',typeWordAudio:'הקלדה מהאזנה',typeMissingAudio:'השלמת אות מהאזנה',typeFirstAudio:'הקלדת אות פותחת מהאזנה'},
   sentences:{pickPic:'משפט → תמונה',pic2sentence:'תמונה → משפט',fillBlankMC:'השלמת מילה חסרה (בחירה)',
-    wordOrder:'סידור מילים למשפט',fillBlankTyped:'השלמת מילה חסרה (הקלדה)',typeSentencePic:'הקלדת משפט שלם מתמונה'}
+    wordOrder:'סידור מילים למשפט',fillBlankTyped:'השלמת מילה חסרה (הקלדה)',typeSentencePic:'הקלדת משפט שלם מתמונה',
+    fillBlankGlueMC:'השלמת מילת חיבור חסרה (בחירה, אחרי האזנה)'}
 };
 
 /* ---------- ENGINE ---------- */
@@ -1324,7 +1303,7 @@ const Engine={
     const worldStart=(world-1)*ZONE_LEN+1, worldEnd=world*ZONE_LEN-1;
     // World 5 has its own curriculum (WORLD5_LEVEL_TEMPLATE): sentence levels use the
     // SENTENCE_BANK pool, the 3 interleaved new-vocab levels use WORLD_WORDS[5] (the new
-    // Minecraft-themed words) — see that const's comment for why they're interleaved.
+    // fantasy/space-themed words) — see that const's comment for why they're interleaved.
     if(world===5 && lv>=worldStart && lv<=worldEnd){
       const tpl=WORLD5_LEVEL_TEMPLATE[lv-worldStart];
       const pool = tpl.skill==='sentences' ? SENTENCE_BANK : WORLD_WORDS[5];
@@ -1534,9 +1513,12 @@ const Engine={
           options:opts.map(o=>({label:o.s,correct:o.s===it.s,cls:'word en',speak:o.s})), answer:it.s};
       }
       if(m==='fillBlankMC'){
+        // the sentence is played out loud automatically (autoSay) — the text alone is ambiguous
+        // (any noun could grammatically fill the blank), so hearing it is how the answer is
+        // actually determined, not an optional hint.
         const distractors=this.sentenceNounOptions(noun,numOpts).filter(o=>o.w!==noun.w).slice(0,numOpts-1);
         const opts=[noun,...distractors].sort(()=>Math.random()-0.5);
-        return {...base, heb:'השלימו את המילה החסרה',
+        return {...base, heb:'הקשיבו למשפט והשלימו את המילה החסרה', autoSay:true,
           stageType:'word', stageValue:blanked, say:it.s,
           options:opts.map(o=>({label:o.w,correct:o.w===noun.w,cls:'word en',speak:o.w})), answer:noun.w};
       }
@@ -1548,6 +1530,30 @@ const Engine={
         return {...base, heb:'איזה מהמשפטים כתוב בסדר הנכון?',
           stageType:'word', stageValue:scrambled.join(' '), say:it.s,
           options:opts.map(o=>({label:o.s,correct:o.correct,cls:'word en',speak:o.s})), answer:it.s};
+      }
+      if(m==='fillBlankGlueMC'){
+        // fills in a GLUE word (I/a/the/is/can/see/have/... — see GLUE_WORDS) instead of the noun,
+        // e.g. "I ___ a bird." -> "see". Picked randomly among every glue word actually present in
+        // the sentence (not always the first one) so the blank varies between subject/verb/article
+        // instead of always landing on "I". The sentence is played out loud automatically (autoSay),
+        // then the kid picks the missing glue word from multiple choice — much lighter than typing.
+        const isGlue=(w)=>GLUE_WORDS.some(g=>g.toLowerCase()===w.toLowerCase().replace(/[.,!?]/g,''));
+        const glueIdxs=it.words.map((w,i)=>i).filter(i=>i!==idx && isGlue(it.words[i]));
+        let gi=glueIdxs.length ? glueIdxs[Math.floor(Math.random()*glueIdxs.length)] : -1;
+        if(gi<0) gi=(idx===0?Math.min(1,it.words.length-1):0); // defensive fallback, shouldn't happen
+        const targetWord=it.words[gi].replace(/[.,!?]/g,'');
+        const gpunct=(it.words[gi].match(/[.,!?]+$/)||[''])[0];
+        const glueBlanked=it.words.map((w,i)=>i===gi?('___'+gpunct):w).join(' ');
+        const distractorPool=GLUE_WORDS.filter(g=>g.toLowerCase()!==targetWord.toLowerCase());
+        const seen=new Set([targetWord.toLowerCase()]); const distractors=[];
+        while(distractors.length<numOpts-1 && distractorPool.length){
+          const cand=distractorPool[Math.floor(Math.random()*distractorPool.length)];
+          if(!seen.has(cand.toLowerCase())){ seen.add(cand.toLowerCase()); distractors.push(cand); }
+        }
+        const opts=[targetWord,...distractors].sort(()=>Math.random()-0.5);
+        return {...base, heb:'הקשיבו למשפט ובחרו את המילה החסרה', autoSay:true,
+          stageType:'word', stageValue:glueBlanked, say:it.s,
+          options:opts.map(o=>({label:o,correct:o.toLowerCase()===targetWord.toLowerCase(),cls:'word en',speak:o})), answer:targetWord};
       }
       if(m==='fillBlankTyped'){
         return {...base, heb:'השלימו את המילה החסרה במשפט (הקלידו)', stageType:'wordmask', stageValue:blanked, say:it.s, pic:noun.e, picWord:noun.w,
@@ -2026,9 +2032,17 @@ const App={
       const bossLv=z*ZONE_LEN, zoneDone=bossLv<p.maxLevel;
       const zoneEl=document.createElement('div'); zoneEl.className='zone'+(zoneDone?' zonecomplete':'');
       const zoneUnlocked = p.maxLevel > (z-1)*ZONE_LEN;
+      const isTester = this.cur==='tester';
       const head=document.createElement('div'); head.className='zonehead'+(zoneUnlocked?'':' lockedzone');
-      head.innerHTML='<span class="zn">'+(zoneUnlocked?'🗺️':'🔒')+' עולם '+z+'</span><span class="zt">'+this.sectionName(z)+'</span>'+
+      head.innerHTML='<span class="zn">'+(zoneUnlocked?'🗺️':(isTester?'🧪':'🔒'))+' עולם '+z+'</span><span class="zt">'+this.sectionName(z)+'</span>'+
         (zoneDone?'<span class="zonedone">✅ הושלם</span>':'');
+      // TESTER-ONLY: click any world's header to jump straight into it — every level in every
+      // earlier world is marked unlocked/complete too, since progress is just "maxLevel reached".
+      if(isTester){
+        head.style.cursor='pointer';
+        head.title='בדיקה: קפוץ לעולם '+z;
+        head.onclick=()=>this.testJumpToWorld(z);
+      }
       zoneEl.appendChild(head);
       const inner=document.createElement('div'); inner.className='zonelevels';
       const svg=document.createElementNS('http://www.w3.org/2000/svg','svg'); svg.setAttribute('class','pathsvg');
@@ -2111,6 +2125,14 @@ const App={
     const bs=this.boss; if(!bs) return;
     bs.hp=0; this.bossWin();
   },
+  // TESTER-ONLY: jump straight into any world from the map — all levels in earlier worlds
+  // become unlocked/marked done too, since unlock state is purely "maxLevel reached".
+  testJumpToWorld(z){
+    if(this.cur!=='tester') return;
+    const p=Store.player(this.cur);
+    p.maxLevel=(z-1)*ZONE_LEN+1;
+    Store.save(); this.renderMap();
+  },
   // shared question painter (used by normal levels AND boss battles)
   paintQuestion(q, ids, onPick){
     document.getElementById(ids.prompt).textContent=q.prompt||'';
@@ -2122,7 +2144,12 @@ const App={
       if(px){ stage.appendChild(px); } else { const d=document.createElement('div'); d.className='bigq'; d.textContent=q.stageValue; stage.appendChild(d); }
       Speech.say(q.say);
     }
-    else if(q.stageType==='word'){ const d=document.createElement('div'); d.className='bigq word en'; d.textContent=q.stageValue; stage.appendChild(d); }
+    else if(q.stageType==='word'){ const d=document.createElement('div'); d.className='bigq word en'; d.textContent=q.stageValue; stage.appendChild(d);
+      // autoSay: the sentence/word is played out loud right away — used where the written text
+      // alone can't disambiguate the answer (e.g. sentences:fillBlankMC, sentences:fillBlankGlueMC),
+      // so hearing it is the normal way to solve the question, not an optional hint.
+      if(q.autoSay) Speech.say(q.say);
+    }
     else if(q.stageType==='audio'){ const b=document.createElement('button'); b.className='speaker'; b.textContent='🔊'; b.onclick=()=>Speech.say(q.say); stage.appendChild(b); Speech.say(q.say); }
     else if(q.stageType==='wordmask'){
       if(q.pic){
@@ -2143,7 +2170,7 @@ const App={
       stage.appendChild(w);
       Speech.say(q.say);
     }
-    if(q.stageType==='letter' || q.stageType==='emoji' || q.stageType==='wordmask' || q.stageType==='wordCopy' || q.stageType==='audio'){
+    if(q.stageType==='letter' || q.stageType==='emoji' || q.stageType==='wordmask' || q.stageType==='wordCopy' || q.stageType==='audio' || (q.stageType==='word' && q.autoSay)){
       const rb=document.createElement('button'); rb.className='replay'; rb.textContent='🔊 שמע שוב';
       rb.onclick=()=>{ q.stageType==='letter'?Speech.letter(q.say):Speech.say(q.say); };
       stage.appendChild(rb);
@@ -2160,12 +2187,14 @@ const App={
         const w=document.createElement('div'); w.className='clueword en'; w.textContent=q.say; stage.appendChild(w); cb.remove(); };
       stage.appendChild(cb);
     }
-    // sound hint for reading-only questions (written word/sentence shown, nothing spoken automatically) —
-    // e.g. words:pickPic ("World 2 level 5" and its equivalents in every world), sentences:pickPic,
-    // sentences:fillBlankMC, sentences:wordOrder. Same cost as the clue above (fewer coins / weaker boss hit).
-    if(q.stageType==='word'){
-      const sb3=document.createElement('button'); sb3.className='clue'; sb3.textContent='🔊 רמז: השמיעו את המילה';
-      sb3.onclick=()=>{ App._clueUsed=true; Speech.say(q.say); sb3.remove(); };
+    // sound hint for reading-only questions that DON'T already auto-play (written word/sentence
+    // shown, nothing spoken automatically) — e.g. words:pickPic ("World 2 level 5" and its
+    // equivalents in every world), sentences:pickPic, sentences:wordOrder. Same cost as the clue
+    // above (fewer coins / weaker boss hit). Stays on screen (doesn't remove itself) so it can be
+    // replayed as many times as needed — a kid shouldn't lose the hint just for having used it once.
+    if(q.stageType==='word' && !q.autoSay){
+      const sb3=document.createElement('button'); sb3.className='clue'; sb3.textContent='🔊 רמז: השמיעו';
+      sb3.onclick=()=>{ App._clueUsed=true; Speech.say(q.say); };
       stage.appendChild(sb3);
     }
     const box=document.getElementById(ids.options); box.innerHTML='';
