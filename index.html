@@ -113,6 +113,9 @@
   .clue:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(0,0,0,.12)}
   .clueword{margin-top:12px;text-align:center;font-size:2.4rem;font-weight:900;color:#fff;
     background:rgba(0,0,0,.18);border-radius:16px;padding:6px 20px;display:inline-block}
+  .replay.heb{background:#eff6ff;color:#1d4ed8;margin-top:8px}
+  .hebword{margin-top:12px;text-align:center;font-size:1.6rem;font-weight:900;color:#1d4ed8;
+    background:#eff6ff;border-radius:16px;padding:6px 20px;display:inline-block}
 
   /* report-a-bug — floating button, visible on every screen */
   .bugbtn{position:fixed;bottom:14px;left:14px;z-index:200;width:50px;height:50px;border-radius:50%;
@@ -644,7 +647,7 @@
 "use strict";
 /* Version: semver major.minor.patch — bump the patch for each small change, minor for a
    meaningful feature, major for a big new phase (e.g. the multi-account/auth rewrite). */
-const VERSION='1.7.2';
+const VERSION='1.7.3';
 /* ---- CLOUD SYNC CONFIG ----
    Both are safe to leave in this file — the anon/publishable key is meant to be
    public; real protection comes from the per-family "sync code" each device enters. */
@@ -1088,51 +1091,68 @@ const CONFUSE={B:'DPR',D:'BPO',P:'BQR',Q:'OGP',G:'CQO',C:'GOQ',M:'NW',N:'MH',
   E:'FB',F:'ET',I:'JLT',J:'IL',U:'VY',V:'UWY',W:'MVU',O:'QGDC',R:'BPK'};
 
 const WORDS=[
-  {w:'cat',e:'🐱',d:1},{w:'dog',e:'🐶',d:1},{w:'pig',e:'🐷',d:1},{w:'cow',e:'🐮',d:1},
-  {w:'fox',e:'🦊',d:1},{w:'hen',e:'🐔',d:1},{w:'bee',e:'🐝',d:1},{w:'owl',e:'🦉',d:1},
-  {w:'frog',e:'🐸',d:2},{w:'fish',e:'🐟',d:2},{w:'bird',e:'🐦',d:2},{w:'duck',e:'🦆',d:2},
-  {w:'lion',e:'🦁',d:2},{w:'bear',e:'🐻',d:2},{w:'goat',e:'🐐',d:2},{w:'snake',e:'🐍',d:3},
-  {w:'horse',e:'🐴',d:3},{w:'sheep',e:'🐑',d:3},{w:'mouse',e:'🐭',d:3},{w:'rabbit',e:'🐰',d:3},
-  {w:'monkey',e:'🐵',d:3},{w:'penguin',e:'🐧',d:4},{w:'elephant',e:'🐘',d:4},{w:'butterfly',e:'🦋',d:4},
-  {w:'egg',e:'🥚',d:1},{w:'cake',e:'🍰',d:2},{w:'milk',e:'🥛',d:2},{w:'corn',e:'🌽',d:2},
-  {w:'apple',e:'🍎',d:2},{w:'bread',e:'🍞',d:3},{w:'pizza',e:'🍕',d:3},{w:'banana',e:'🍌',d:3},
-  {w:'grapes',e:'🍇',d:3},{w:'cheese',e:'🧀',d:3},{w:'cookie',e:'🍪',d:3},{w:'carrot',e:'🥕',d:3},
-  {w:'sun',e:'☀️',d:1},{w:'moon',e:'🌙',d:2},{w:'star',e:'⭐',d:2},{w:'tree',e:'🌳',d:2},
-  {w:'rain',e:'🌧️',d:2},{w:'snow',e:'❄️',d:2},{w:'fire',e:'🔥',d:2},{w:'leaf',e:'🍃',d:2},
-  {w:'flower',e:'🌸',d:3},{w:'cloud',e:'☁️',d:3},{w:'rainbow',e:'🌈',d:4},{w:'mountain',e:'⛰️',d:4},
-  {w:'ball',e:'⚽',d:2},{w:'book',e:'📖',d:2},{w:'car',e:'🚗',d:1},{w:'bus',e:'🚌',d:1},
-  {w:'boat',e:'⛵',d:2},{w:'key',e:'🔑',d:1},{w:'cup',e:'☕',d:1},{w:'hat',e:'🎩',d:1},
-  {w:'bell',e:'🔔',d:2},{w:'drum',e:'🥁',d:2},{w:'clock',e:'🕐',d:3},{w:'house',e:'🏠',d:3},
-  {w:'train',e:'🚆',d:3},{w:'plane',e:'✈️',d:3},{w:'rocket',e:'🚀',d:3},{w:'guitar',e:'🎸',d:3},
+  {w:'cat',e:'🐱',d:1,he:'חתול'},{w:'dog',e:'🐶',d:1,he:'כלב'},{w:'pig',e:'🐷',d:1,he:'חזיר'},{w:'cow',e:'🐮',d:1,he:'פרה'},
+  {w:'fox',e:'🦊',d:1,he:'שועל'},{w:'hen',e:'🐔',d:1,he:'תרנגולת'},{w:'bee',e:'🐝',d:1,he:'דבורה'},{w:'owl',e:'🦉',d:1,he:'ינשוף'},
+  {w:'frog',e:'🐸',d:2,he:'צפרדע'},{w:'fish',e:'🐟',d:2,he:'דג'},{w:'bird',e:'🐦',d:2,he:'ציפור'},{w:'duck',e:'🦆',d:2,he:'ברווז'},
+  {w:'lion',e:'🦁',d:2,he:'אריה'},{w:'bear',e:'🐻',d:2,he:'דוב'},{w:'goat',e:'🐐',d:2,he:'עז'},{w:'snake',e:'🐍',d:3,he:'נחש'},
+  {w:'horse',e:'🐴',d:3,he:'סוס'},{w:'sheep',e:'🐑',d:3,he:'כבשה'},{w:'mouse',e:'🐭',d:3,he:'עכבר'},{w:'rabbit',e:'🐰',d:3,he:'ארנב'},
+  {w:'monkey',e:'🐵',d:3,he:'קוף'},{w:'penguin',e:'🐧',d:4,he:'פינגווין'},{w:'elephant',e:'🐘',d:4,he:'פיל'},{w:'butterfly',e:'🦋',d:4,he:'פרפר'},
+  {w:'egg',e:'🥚',d:1,he:'ביצה'},{w:'cake',e:'🍰',d:2,he:'עוגה'},{w:'milk',e:'🥛',d:2,he:'חלב'},{w:'corn',e:'🌽',d:2,he:'תירס'},
+  {w:'apple',e:'🍎',d:2,he:'תפוח'},{w:'bread',e:'🍞',d:3,he:'לחם'},{w:'pizza',e:'🍕',d:3,he:'פיצה'},{w:'banana',e:'🍌',d:3,he:'בננה'},
+  {w:'grapes',e:'🍇',d:3,he:'ענבים'},{w:'cheese',e:'🧀',d:3,he:'גבינה'},{w:'cookie',e:'🍪',d:3,he:'עוגייה'},{w:'carrot',e:'🥕',d:3,he:'גזר'},
+  {w:'sun',e:'☀️',d:1,he:'שמש'},{w:'moon',e:'🌙',d:2,he:'ירח'},{w:'star',e:'⭐',d:2,he:'כוכב'},{w:'tree',e:'🌳',d:2,he:'עץ'},
+  {w:'rain',e:'🌧️',d:2,he:'גשם'},{w:'snow',e:'❄️',d:2,he:'שלג'},{w:'fire',e:'🔥',d:2,he:'אש'},{w:'leaf',e:'🍃',d:2,he:'עלה'},
+  {w:'flower',e:'🌸',d:3,he:'פרח'},{w:'cloud',e:'☁️',d:3,he:'ענן'},{w:'rainbow',e:'🌈',d:4,he:'קשת'},{w:'mountain',e:'⛰️',d:4,he:'הר'},
+  {w:'ball',e:'⚽',d:2,he:'כדור'},{w:'book',e:'📖',d:2,he:'ספר'},{w:'car',e:'🚗',d:1,he:'מכונית'},{w:'bus',e:'🚌',d:1,he:'אוטובוס'},
+  {w:'boat',e:'⛵',d:2,he:'סירה'},{w:'key',e:'🔑',d:1,he:'מפתח'},{w:'cup',e:'☕',d:1,he:'כוס'},{w:'hat',e:'🎩',d:1,he:'כובע'},
+  {w:'bell',e:'🔔',d:2,he:'פעמון'},{w:'drum',e:'🥁',d:2,he:'תוף'},{w:'clock',e:'🕐',d:3,he:'שעון'},{w:'house',e:'🏠',d:3,he:'בית'},
+  {w:'train',e:'🚆',d:3,he:'רכבת'},{w:'plane',e:'✈️',d:3,he:'מטוס'},{w:'rocket',e:'🚀',d:3,he:'טיל'},{w:'guitar',e:'🎸',d:3,he:'גיטרה'},
   // --- expanded vocabulary ---
-  {w:'tiger',e:'🐯',d:3},{w:'zebra',e:'🦓',d:3},{w:'giraffe',e:'🦒',d:4},{w:'turtle',e:'🐢',d:3},
-  {w:'crab',e:'🦀',d:2},{w:'octopus',e:'🐙',d:4},{w:'whale',e:'🐳',d:3},{w:'dolphin',e:'🐬',d:4},
-  {w:'snail',e:'🐌',d:3},{w:'parrot',e:'🦜',d:3},{w:'deer',e:'🦌',d:2},{w:'koala',e:'🐨',d:3},
-  {w:'camel',e:'🐫',d:3},{w:'shark',e:'🦈',d:3},{w:'spider',e:'🕷️',d:3},{w:'ant',e:'🐜',d:1},
-  {w:'worm',e:'🪱',d:2},{w:'crocodile',e:'🐊',d:4},{w:'dinosaur',e:'🦕',d:4},{w:'ladybug',e:'🐞',d:4},
-  {w:'orange',e:'🍊',d:3},{w:'lemon',e:'🍋',d:3},{w:'cherry',e:'🍒',d:3},{w:'peach',e:'🍑',d:3},
-  {w:'tomato',e:'🍅',d:3},{w:'potato',e:'🥔',d:3},{w:'burger',e:'🍔',d:3},{w:'fries',e:'🍟',d:3},
-  {w:'donut',e:'🍩',d:3},{w:'candy',e:'🍬',d:3},{w:'honey',e:'🍯',d:3},{w:'melon',e:'🍉',d:3},
-  {w:'mushroom',e:'🍄',d:4},{w:'popcorn',e:'🍿',d:4},{w:'sandwich',e:'🥪',d:4},{w:'strawberry',e:'🍓',d:4},
-  {w:'door',e:'🚪',d:2},{w:'chair',e:'🪑',d:3},{w:'bed',e:'🛏️',d:1},{w:'lamp',e:'💡',d:2},
-  {w:'phone',e:'📱',d:3},{w:'pencil',e:'✏️',d:3},{w:'kite',e:'🪁',d:2},{w:'balloon',e:'🎈',d:4},
-  {w:'gift',e:'🎁',d:2},{w:'umbrella',e:'☂️',d:4},{w:'candle',e:'🕯️',d:3},{w:'camera',e:'📷',d:3},
-  {w:'teddy',e:'🧸',d:3},{w:'scissors',e:'✂️',d:4},{w:'crayon',e:'🖍️',d:3},
-  {w:'taxi',e:'🚕',d:2},{w:'bike',e:'🚲',d:2},{w:'truck',e:'🚚',d:3},{w:'ship',e:'🚢',d:2},
-  {w:'scooter',e:'🛴',d:4},{w:'tractor',e:'🚜',d:4},{w:'helicopter',e:'🚁',d:4},
-  {w:'eye',e:'👁️',d:1},{w:'ear',e:'👂',d:1},{w:'nose',e:'👃',d:2},{w:'hand',e:'✋',d:2},{w:'tooth',e:'🦷',d:3},
-  {w:'shirt',e:'👕',d:3},{w:'dress',e:'👗',d:3},{w:'sock',e:'🧦',d:2},{w:'shoe',e:'👟',d:2},
-  {w:'bag',e:'🎒',d:1},{w:'boot',e:'👢',d:2},{w:'glove',e:'🧤',d:3},{w:'crown',e:'👑',d:3},
-  {w:'wave',e:'🌊',d:2},{w:'volcano',e:'🌋',d:4},{w:'island',e:'🏝️',d:3},{w:'earth',e:'🌍',d:3},
-  {w:'cactus',e:'🌵',d:3},{w:'basketball',e:'🏀',d:5},{w:'tennis',e:'🎾',d:3},{w:'medal',e:'🥇',d:3},
-  {w:'robot',e:'🤖',d:3},{w:'ghost',e:'👻',d:3},{w:'crystal',e:'💎',d:4},
+  {w:'tiger',e:'🐯',d:3,he:'נמר'},{w:'zebra',e:'🦓',d:3,he:'זברה'},{w:'giraffe',e:'🦒',d:4,he:'ג׳ירפה'},{w:'turtle',e:'🐢',d:3,he:'צב'},
+  {w:'crab',e:'🦀',d:2,he:'סרטן'},{w:'octopus',e:'🐙',d:4,he:'תמנון'},{w:'whale',e:'🐳',d:3,he:'לוויתן'},{w:'dolphin',e:'🐬',d:4,he:'דולפין'},
+  {w:'snail',e:'🐌',d:3,he:'חילזון'},{w:'parrot',e:'🦜',d:3,he:'תוכי'},{w:'deer',e:'🦌',d:2,he:'צבי'},{w:'koala',e:'🐨',d:3,he:'קואלה'},
+  {w:'camel',e:'🐫',d:3,he:'גמל'},{w:'shark',e:'🦈',d:3,he:'כריש'},{w:'spider',e:'🕷️',d:3,he:'עכביש'},{w:'ant',e:'🐜',d:1,he:'נמלה'},
+  {w:'worm',e:'🪱',d:2,he:'תולעת'},{w:'crocodile',e:'🐊',d:4,he:'תנין'},{w:'dinosaur',e:'🦕',d:4,he:'דינוזאור'},{w:'ladybug',e:'🐞',d:4,he:'פרת משה רבנו'},
+  {w:'orange',e:'🍊',d:3,he:'תפוז'},{w:'lemon',e:'🍋',d:3,he:'לימון'},{w:'cherry',e:'🍒',d:3,he:'דובדבן'},{w:'peach',e:'🍑',d:3,he:'אפרסק'},
+  {w:'tomato',e:'🍅',d:3,he:'עגבנייה'},{w:'potato',e:'🥔',d:3,he:'תפוח אדמה'},{w:'burger',e:'🍔',d:3,he:'המבורגר'},{w:'fries',e:'🍟',d:3,he:'צ׳יפס'},
+  {w:'donut',e:'🍩',d:3,he:'סופגנייה'},{w:'candy',e:'🍬',d:3,he:'סוכריה'},{w:'honey',e:'🍯',d:3,he:'דבש'},{w:'melon',e:'🍉',d:3,he:'מלון'},
+  {w:'mushroom',e:'🍄',d:4,he:'פטרייה'},{w:'popcorn',e:'🍿',d:4,he:'פופקורן'},{w:'sandwich',e:'🥪',d:4,he:'כריך'},{w:'strawberry',e:'🍓',d:4,he:'תות'},
+  {w:'door',e:'🚪',d:2,he:'דלת'},{w:'chair',e:'🪑',d:3,he:'כיסא'},{w:'bed',e:'🛏️',d:1,he:'מיטה'},{w:'lamp',e:'💡',d:2,he:'מנורה'},
+  {w:'phone',e:'📱',d:3,he:'טלפון'},{w:'pencil',e:'✏️',d:3,he:'עיפרון'},{w:'kite',e:'🪁',d:2,he:'עפיפון'},{w:'balloon',e:'🎈',d:4,he:'בלון'},
+  {w:'gift',e:'🎁',d:2,he:'מתנה'},{w:'umbrella',e:'☂️',d:4,he:'מטרייה'},{w:'candle',e:'🕯️',d:3,he:'נר'},{w:'camera',e:'📷',d:3,he:'מצלמה'},
+  {w:'teddy',e:'🧸',d:3,he:'דובון'},{w:'scissors',e:'✂️',d:4,he:'מספריים'},{w:'crayon',e:'🖍️',d:3,he:'עפרון צבעוני'},
+  {w:'taxi',e:'🚕',d:2,he:'מונית'},{w:'bike',e:'🚲',d:2,he:'אופניים'},{w:'truck',e:'🚚',d:3,he:'משאית'},{w:'ship',e:'🚢',d:2,he:'אונייה'},
+  {w:'scooter',e:'🛴',d:4,he:'קורקינט'},{w:'tractor',e:'🚜',d:4,he:'טרקטור'},{w:'helicopter',e:'🚁',d:4,he:'מסוק'},
+  {w:'eye',e:'👁️',d:1,he:'עין'},{w:'ear',e:'👂',d:1,he:'אוזן'},{w:'nose',e:'👃',d:2,he:'אף'},{w:'hand',e:'✋',d:2,he:'יד'},{w:'tooth',e:'🦷',d:3,he:'שן'},
+  {w:'shirt',e:'👕',d:3,he:'חולצה'},{w:'dress',e:'👗',d:3,he:'שמלה'},{w:'sock',e:'🧦',d:2,he:'גרב'},{w:'shoe',e:'👟',d:2,he:'נעל'},
+  {w:'bag',e:'🎒',d:1,he:'תיק'},{w:'boot',e:'👢',d:2,he:'מגף'},{w:'glove',e:'🧤',d:3,he:'כפפה'},{w:'crown',e:'👑',d:3,he:'כתר'},
+  {w:'wave',e:'🌊',d:2,he:'גל'},{w:'volcano',e:'🌋',d:4,he:'הר געש'},{w:'island',e:'🏝️',d:3,he:'אי'},{w:'earth',e:'🌍',d:3,he:'כדור הארץ'},
+  {w:'cactus',e:'🌵',d:3,he:'קקטוס'},{w:'basketball',e:'🏀',d:5,he:'כדורסל'},{w:'tennis',e:'🎾',d:3,he:'טניס'},{w:'medal',e:'🥇',d:3,he:'מדליה'},
+  {w:'robot',e:'🤖',d:3,he:'רובוט'},{w:'ghost',e:'👻',d:3,he:'רוח רפאים'},{w:'crystal',e:'💎',d:4,he:'קריסטל'},
   // --- added v5.7: a few extra simple D/F/S words so World 3's pool reaches 30+ words ---
-  {w:'doll',e:'🪆',d:2},{w:'fan',e:'🪭',d:1},{w:'soap',e:'🧼',d:2},
+  {w:'doll',e:'🪆',d:2,he:'בובה'},{w:'fan',e:'🪭',d:1,he:'מניפה'},{w:'soap',e:'🧼',d:2,he:'סבון'},
   // --- added v5.9: World 5 vocabulary — a fantasy/space theme (swapped out from the earlier
   // Minecraft-themed set, which leaned on one game's branding too heavily). 5 of these reuse
   // words already defined above (rocket/robot/ghost/dinosaur/crystal); 5 are brand new. ---
-  {w:'dragon',e:'🐉',d:3},{w:'castle',e:'🏰',d:3},{w:'unicorn',e:'🦄',d:3},
-  {w:'alien',e:'👽',d:3},{w:'planet',e:'🪐',d:3}
+  {w:'dragon',e:'🐉',d:3,he:'דרקון'},{w:'castle',e:'🏰',d:3,he:'טירה'},{w:'unicorn',e:'🦄',d:3,he:'חד קרן'},
+  {w:'alien',e:'👽',d:3,he:'חייזר'},{w:'planet',e:'🪐',d:3,he:'כוכב לכת'},
+  // --- added v6.0: World 6 vocabulary (G, N, P, R, W) — 10 brand-new words; the rest of World 6's
+  // pool reuses words already defined above (goat/grapes/giraffe/gift/ghost/guitar, nose,
+  // pig/penguin/pizza/potato/popcorn/pencil/phone/peach/parrot, rabbit/rainbow/rain/rocket/robot,
+  // whale/worm/wave) ---
+  {w:'nut',e:'🥜',d:1,he:'אגוז'},{w:'net',e:'🥅',d:1,he:'רשת'},{w:'necklace',e:'📿',d:3,he:'שרשרת'},{w:'newspaper',e:'📰',d:3,he:'עיתון'},
+  {w:'nurse',e:'🧑‍⚕️',d:2,he:'אחות'},{w:'ring',e:'💍',d:2,he:'טבעת'},{w:'rose',e:'🌹',d:2,he:'ורד'},{w:'rat',e:'🐀',d:2,he:'חולדה'},
+  {w:'window',e:'🪟',d:2,he:'חלון'},{w:'watch',e:'⌚',d:2,he:'שעון יד'},
+  // --- added v6.1: World 7 vocabulary (A, E, I, O, U) — 11 brand-new words; the rest of World 7's
+  // pool reuses words already defined above (apple/ant, egg/elephant/ear/eye/earth, island,
+  // orange/octopus/owl, umbrella/unicorn). "ice cream" was dropped from the original I-word plan —
+  // multi-word entries don't work with the typed-answer checker (see makeQuestion), so the I group
+  // stayed at 4 words instead of 5. ---
+  {w:'arrow',e:'🏹',d:2,he:'חץ'},{w:'astronaut',e:'👨‍🚀',d:4,he:'אסטרונאוט'},{w:'alarm',e:'⏰',d:2,he:'שעון מעורר'},
+  {w:'envelope',e:'✉️',d:3,he:'מעטפה'},
+  {w:'insect',e:'🐛',d:2,he:'חרק'},{w:'ink',e:'🖋️',d:2,he:'דיו'},{w:'iguana',e:'🦎',d:4,he:'איגואנה'},
+  {w:'onion',e:'🧅',d:2,he:'בצל'},{w:'olive',e:'🫒',d:2,he:'זית'},
+  {w:'ufo',e:'🛸',d:3,he:'עב״ם'},{w:'uncle',e:'👨',d:2,he:'דוד'}
 ];
 
 // Pixel-art icons — kept for any words that want a hand-drawn 8x8 look instead of a plain emoji;
@@ -1155,12 +1175,22 @@ const Pixel={
 
 // two-letter blends (digraphs) that make one sound — used by the letters "typeDigraph" question type
 const DIGRAPHS=[
-  {w:'chair',e:'🪑',pair:'ch'},{w:'cheese',e:'🧀',pair:'ch'},
-  {w:'shark',e:'🦈',pair:'sh'},{w:'sheep',e:'🐑',pair:'sh'},
-  {w:'think',e:'🤔',pair:'th'},
-  {w:'wheel',e:'🛞',pair:'wh'},{w:'whale',e:'🐳',pair:'wh'},
-  {w:'phone',e:'📱',pair:'ph'}
+  {w:'chair',e:'🪑',pair:'ch',he:'כיסא'},{w:'cheese',e:'🧀',pair:'ch',he:'גבינה'},
+  {w:'shark',e:'🦈',pair:'sh',he:'כריש'},{w:'sheep',e:'🐑',pair:'sh',he:'כבשה'},
+  {w:'think',e:'🤔',pair:'th',he:'לחשוב'},
+  {w:'wheel',e:'🛞',pair:'wh',he:'גלגל'},{w:'whale',e:'🐳',pair:'wh',he:'לוויתן'},
+  {w:'phone',e:'📱',pair:'ph',he:'טלפון'}
 ];
+
+// looks up the Hebrew translation for a single English word (used by the "🇮🇱 עברית" picture-clarity
+// button — see paintQuestion) — checks WORDS first, then DIGRAPHS (a few digraph words like
+// think/wheel only exist there). Returns null if not found (button is simply omitted).
+function hebrewFor(word){
+  if(!word) return null;
+  const w = String(word).toLowerCase();
+  const hit = WORDS.find(x=>x.w===w) || DIGRAPHS.find(x=>x.w===w);
+  return hit ? hit.he : null;
+}
 
 // Worlds 2, 3 and 4 are a deliberately gradual on-ramp from letters into reading/typing whole
 // words, and each one is themed around a small set of target letters so the vocabulary stays
@@ -1176,7 +1206,16 @@ const WORLD_WORDS = {
   // World 3 — D, F & S (30 words: 27 simple/moderate + 3 harder: dolphin, sandwich, scissors)
   3: WORDS.filter(w=>['dog','duck','door','drum','donut','dress','doll','fox','frog','fish','fire','flower','fries','fan','sun','star','snow','sock','shoe','ship','snake','sheep','shark','spider','snail','shirt','soap','dolphin','sandwich','scissors'].includes(w.w)),
   // World 4 — H, M, T, L & K (31 words: 28 simple/moderate + 3 harder: helicopter, mountain, tractor)
-  4: WORDS.filter(w=>['hen','horse','house','hat','hand','mouse','monkey','milk','moon','melon','medal','tiger','turtle','tree','train','tomato','teddy','taxi','truck','tooth','tennis','lion','leaf','lemon','lamp','koala','key','kite','helicopter','mountain','tractor'].includes(w.w))
+  4: WORDS.filter(w=>['hen','horse','house','hat','hand','mouse','monkey','milk','moon','melon','medal','tiger','turtle','tree','train','tomato','teddy','taxi','truck','tooth','tennis','lion','leaf','lemon','lamp','koala','key','kite','helicopter','mountain','tractor'].includes(w.w)),
+  // World 6 — G, N, P, R & W (34 words: 29 simple/moderate + 5 harder: giraffe, necklace,
+  // newspaper, popcorn, rainbow — kept as 5 instead of the usual 3 per this world's own design
+  // review). See WORLDS_CURRICULUM_PLAN.md Part 1 for the full breakdown.
+  6: WORDS.filter(w=>['goat','grapes','giraffe','gift','ghost','guitar','nose','nut','net','necklace','newspaper','nurse','pig','penguin','pizza','potato','popcorn','pencil','phone','peach','parrot','rabbit','rainbow','rain','rocket','robot','ring','rose','rat','whale','worm','wave','window','watch'].includes(w.w)),
+  // World 7 — A, E, I, O & U (24 words: 21 simple/moderate + 3 harder: astronaut, iguana, octopus).
+  // Vowel-initial words are objectively scarcer for this age than consonant ones, so this pool is
+  // smaller than Worlds 2-4/6's ~30-34 — by design, not an oversight. See WORLDS_CURRICULUM_PLAN.md
+  // Part 1 for the full breakdown.
+  7: WORDS.filter(w=>['apple','ant','arrow','astronaut','alarm','egg','elephant','ear','eye','earth','envelope','island','insect','ink','iguana','orange','octopus','owl','onion','olive','umbrella','unicorn','ufo','uncle'].includes(w.w))
 };
 // shared explicit curriculum for the 9 practice levels of Worlds 2, 3 and 4 (overrides the generic
 // level→(skill,type) cycling in Engine.levelFocus for those zones) — see the v5.5/v5.6 changelog
@@ -1195,6 +1234,23 @@ const WORLD_LEVEL_TEMPLATE = [
   {skill:'words',  type:'pickPic'},          // level 7: word→picture matching again
   {skill:'words',  type:'typeMissing'},      // level 8: fill in ONE missing letter again
   {skill:'words',  type:'typeWordPic'}       // level 9: type the whole word — capstone before the boss
+];
+// World 6 onward's pure-vocabulary curriculum — same shape as WORLD_LEVEL_TEMPLATE (Worlds 2-4)
+// except the closing level: free-recall spelling (typeWordPic, which the engine auto-hardens to
+// picture-only from World 6 onward) was judged too advanced for 3rd grade, so the closing level is
+// typeUnscramble instead — still types the whole word, but assembled from its own given letters
+// rather than pure memory. See WORLDS_CURRICULUM_PLAN.md §3.3/§3.6 for the reasoning. Worlds 2-4
+// keep WORLD_LEVEL_TEMPLATE unchanged (no retrofit) — this variant applies to World 6+.
+const WORLD_LEVEL_TEMPLATE_V2 = [
+  {skill:'sounds', type:'pickFirst'},        // level 1: first-letter, multiple choice
+  {skill:'sounds', type:'typeFirstPic'},     // level 2: first-letter, typed (picture shown)
+  {skill:'sounds', type:'typeFirstAudio'},   // level 3: first-letter, typed (audio only, no picture)
+  {skill:'sounds', type:'typeLastPic'},      // level 4: last-letter, typed — completes phonics
+  {skill:'words',  type:'pickPic'},          // level 5: word→picture matching, multiple choice (reading only)
+  {skill:'words',  type:'typeMissing'},      // level 6: fill in ONE missing letter
+  {skill:'words',  type:'pickPic'},          // level 7: word→picture matching again
+  {skill:'words',  type:'typeMissing'},      // level 8: fill in ONE missing letter again
+  {skill:'words',  type:'typeUnscramble'}    // level 9: unscramble the letters into the word — capstone before the boss
 ];
 
 // World 5 — simple sentences, built from every noun taught in Worlds 2-4 plus 10 new
@@ -1310,7 +1366,10 @@ const Engine={
       return {skill:tpl.skill, type:tpl.type, wordPool:pool};
     }
     if(WORLD_WORDS[world] && lv>=worldStart && lv<=worldEnd){
-      const tpl=WORLD_LEVEL_TEMPLATE[lv-worldStart];
+      // Worlds 2-4 use the original template (typeWordPic capstone); World 6+ uses V2
+      // (typeUnscramble capstone) — see WORLD_LEVEL_TEMPLATE_V2's comment for why.
+      const template = world<=4 ? WORLD_LEVEL_TEMPLATE : WORLD_LEVEL_TEMPLATE_V2;
+      const tpl=template[lv-worldStart];
       return {skill:tpl.skill, type:tpl.type, wordPool:WORLD_WORDS[world]};
     }
     const skills=this.skillsForLevel(lv);
@@ -1427,7 +1486,7 @@ const Engine={
       }
       // typeDigraph — hear a word, type the two letters that make its opening blend (ch/sh/th/wh/ph)
       const dg=DIGRAPHS[Math.floor(Math.random()*DIGRAPHS.length)];
-      return {...base, itemId:'L_DG_'+dg.w, heb:'הקשיבו והקלידו את שני האותיות שפותחות את הצליל (למשל ch, sh, th, wh, ph)',
+      return {...base, itemId:'L_DG_'+dg.w, heb:'הקשיבו והקלידו את שתי האותיות שפותחות את הצליל (למשל ch, sh, th, wh, ph)',
         stageType:'emoji', stageValue:dg.e, say:dg.w,
         inputType:'text', maxLen:2, answer:dg.pair, check:v=>v.trim().toLowerCase()===dg.pair};
     }
@@ -2180,6 +2239,22 @@ const App={
       sb2.onclick=()=>{ q.stageType==='letter'?Speech.letter(q.say,0.5):Speech.say(q.say,0.5); };
       stage.appendChild(sb2);
     }
+    // "🇮🇱 עברית" — free picture-clarity button, only where an actual picture is shown (some emoji
+    // are genuinely ambiguous, e.g. 🥅 for "net"). Shows the Hebrew word so a kid can confirm what
+    // the picture IS without it giving away the English spelling/letter being tested. Free (no coin
+    // or boss-damage penalty) — this is an accessibility aid, not an answer clue like 💡 below.
+    if(q.stageType==='emoji' || q.stageType==='wordCopy' || (q.stageType==='wordmask' && q.pic)){
+      const heWord = hebrewFor(q.picWord||q.say);
+      if(heWord){
+        const hb=document.createElement('button'); hb.className='replay heb'; hb.textContent='🇮🇱 עברית';
+        hb.onclick=()=>{
+          if(stage.querySelector('.hebword')) return;
+          const hw=document.createElement('div'); hw.className='hebword'; hw.textContent=heWord;
+          stage.appendChild(hw);
+        };
+        stage.appendChild(hb);
+      }
+    }
     // clue button for first-letter (picture) questions — reveals the word, costs coins/damage
     if(q.skill==='sounds'){
       const cb=document.createElement('button'); cb.className='clue'; cb.textContent='💡 רמז: הצג את המילה';
@@ -2268,8 +2343,8 @@ const App={
     const fast = firstTry && (Date.now()-ex.qStart)<4000;
     if(firstTry){ ex.correct++; ex.streak++; } // only first-try counts toward score/streak
     let coins, bonus='';
-    if(!firstTry){ coins=1; bonus=' (אחרי תיקון)'; }
-    else if(this._clueUsed){ coins=2; bonus=' 💡רמז'; }
+    if(!firstTry){ coins=2; bonus=' (אחרי תיקון)'; }
+    else if(this._clueUsed){ coins=3; bonus=' 💡רמז'; }
     else {
       const base=5, fastB=fast?2:0, streakB=ex.streak>=3?2:0;
       coins=base+fastB+streakB;
@@ -2506,7 +2581,7 @@ const App={
   /* ---------- WORLDS + BOSS BATTLES ---------- */
   goLevel(lv){ if(lv%ZONE_LEN===0) this.startBoss(lv); else this.startLevel(lv); },
   bossEmoji(world){ const a=['👾','🐉','👹','🤖','👺','🦖','💀','🐲','👽','🦂']; return a[(world-1)%a.length]; },
-  sectionName(z){ return ['אותיות וצלילים','מילים ראשונות','אוצר מילים','מילים נוספות','משפטים פשוטים','אתגר האלופים'][z-1] || ('אתגר '+z); },
+  sectionName(z){ return ['אותיות וצלילים','מילים ראשונות','אוצר מילים','מילים נוספות','משפטים פשוטים','אותיות ומילים נוספות','מילות תנועה'][z-1] || ('אתגר '+z); },
 
   startBoss(lv){
     const world=lv/ZONE_LEN;
