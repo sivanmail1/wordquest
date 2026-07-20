@@ -1403,14 +1403,28 @@ const Engine={
     const qs=[]; const N=12; const used=new Set();
     // dedupe by itemId so the same question can't appear twice in one level
     const add=(q)=>{ if(!q||used.has(q.itemId)) return false; used.add(q.itemId); qs.push(q); return true; };
-    // spaced-repetition review items are shown in THIS level's focused type when they share its skill
+    // build a question defensively — a single malformed/stale item (e.g. a leftover
+    // spaced-repetition review entry from an older content version whose itemId no longer
+    // exists) must NEVER be able to throw and abort the whole level. If makeQuestion throws,
+    // log it and just skip that one question instead of leaving the player stuck on the map
+    // with nothing visibly happening when they tap a level node.
+    const safeAdd=(fn)=>{ try{ return add(fn()); }catch(e){ console.error('WordQuest: skipped a broken question in buildLevel', e); return false; } };
+    // spaced-repetition review items are shown in THIS level's focused type when they share its
+    // skill. focus.wordPool is themed for focus.skill's shape (e.g. sentence objects for
+    // 'sentences', word objects for 'words'/'sounds') — only pass it through when the review
+    // item is the SAME skill, otherwise a mismatched pool shape crashes makeQuestion when it
+    // reads .words/.w off the wrong kind of object (the safeAdd guard above is a second layer
+    // of protection against exactly that, and any other unforeseen bad-data case).
     p.review.filter(r=>r.due<=Date.now()).slice(0,2).forEach(r=>
-      add(this.makeQuestion(p,r.skill,r.diff,r.itemId, focus.skill===r.skill?focus.type:undefined, focus.wordPool, lv)));
+      safeAdd(()=>this.makeQuestion(p,r.skill,r.diff,r.itemId, focus.skill===r.skill?focus.type:undefined, focus.skill===r.skill?focus.wordPool:undefined, lv)));
     let guard=0;
     while(qs.length<N && guard++<200){
       const diff=this.pickDiff(p,focus.skill,lv);
-      add(this.makeQuestion(p,focus.skill,diff,null,focus.type,focus.wordPool, lv));
+      safeAdd(()=>this.makeQuestion(p,focus.skill,diff,null,focus.type,focus.wordPool, lv));
     }
+    // ultimate fallback: if literally nothing could be built (shouldn't happen, but a level with
+    // zero questions would still leave the player stuck) inject a trivially safe letters question.
+    if(!qs.length){ safeAdd(()=>this.makeQuestion(p,'letters',1,null,'caseU2L',undefined, lv)); }
     const shuffled=qs.sort(()=>Math.random()-0.5);
     shuffled.focus=focus;
     return shuffled;
@@ -2579,7 +2593,24 @@ const App={
   },
 
   /* ---------- WORLDS + BOSS BATTLES ---------- */
-  goLevel(lv){ if(lv%ZONE_LEN===0) this.startBoss(lv); else this.startLevel(lv); },
+  // last-resort safety net: if anything in the level-build/render path throws (bad saved data,
+  // an unforeseen edge case, etc.), the player must see SOMETHING instead of a silently dead tap.
+  // We also drop that player's spaced-repetition review queue — the most likely source of stale
+  // data pointing at content that no longer exists — and retry once before giving up.
+  goLevel(lv){
+    try{ if(lv%ZONE_LEN===0) this.startBoss(lv); else this.startLevel(lv); }
+    catch(e){
+      console.error('WordQuest: goLevel failed, retrying after clearing review queue', e);
+      try{
+        const p=Store.player(this.cur);
+        if(p && p.review && p.review.length){ p.review=[]; Store.save(); }
+        if(lv%ZONE_LEN===0) this.startBoss(lv); else this.startLevel(lv);
+      }catch(e2){
+        console.error('WordQuest: goLevel failed again after retry', e2);
+        this.toast('אופס, הייתה תקלה בטעינת השלב. נסו לרענן את הדף 🔄', true);
+      }
+    }
+  },
   bossEmoji(world){ const a=['👾','🐉','👹','🤖','👺','🦖','💀','🐲','👽','🦂']; return a[(world-1)%a.length]; },
   sectionName(z){ return ['אותיות וצלילים','מילים ראשונות','אוצר מילים','מילים נוספות','משפטים פשוטים','אותיות ומילים נוספות','מילות תנועה'][z-1] || ('אתגר '+z); },
 
